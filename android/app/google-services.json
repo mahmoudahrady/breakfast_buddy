@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "511608325453",
+    "project_id": "breakfast-102e0",
+    "storage_bucket": "breakfast-102e0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:511608325453:android:f7ef37e204ceb7ad8ba304",
+        "android_client_info": {
+          "package_name": "com.example.breakfast_buddy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "511608325453-tlsasmo53boc7oslh6ca4barbdnnef71.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.breakfast_buddy",
+            "certificate_hash": "b22b5a7baa32d4da10e1a0d05cf3c10e4fc83b80"
+          }
+        },
+        {
+          "client_id": "511608325453-pejbjmmkck8cscfam4rqohf64ha8lsea.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGapJ5KE3BjDb3p8eleqjF1wWq62PvvY8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "511608325453-pejbjmmkck8cscfam4rqohf64ha8lsea.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "511608325453-48ntomdmkrctq2548ibb2hsqkgr7nni1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.breakfastBuddy"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
