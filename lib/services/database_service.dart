@@ -3,6 +3,7 @@ import '../models/app_user.dart';
 import '../models/order.dart' as OrderModel;
 import '../models/order_session.dart';
 import '../models/payment.dart';
+import '../models/favorite_item.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -120,6 +121,7 @@ class DatabaseService {
     required double price,
     int quantity = 1,
     String? imageUrl,
+    String? notes,
   }) async {
     try {
       OrderModel.Order order = OrderModel.Order(
@@ -132,6 +134,7 @@ class DatabaseService {
         price: price,
         quantity: quantity,
         imageUrl: imageUrl,
+        notes: notes,
         createdAt: DateTime.now(),
       );
 
@@ -288,6 +291,66 @@ class DatabaseService {
     }
   }
 
+  // Get payments for a group within a date range
+  Future<List<Payment>> getPaymentsForGroupByDateRange({
+    required String groupId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection('payments')
+          .where('groupId', isEqualTo: groupId)
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .get();
+
+      return query.docs.map((doc) => Payment.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw 'Failed to fetch payments. Please try again.';
+    }
+  }
+
+  // Get payment statistics for a group
+  Future<Map<String, dynamic>> getGroupPaymentStatistics(String groupId) async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection('payments')
+          .where('groupId', isEqualTo: groupId)
+          .get();
+
+      final payments = query.docs.map((doc) => Payment.fromFirestore(doc)).toList();
+
+      double totalAmount = 0;
+      double paidAmount = 0;
+      double unpaidAmount = 0;
+      int totalCount = payments.length;
+      int paidCount = 0;
+
+      for (var payment in payments) {
+        totalAmount += payment.amount;
+        if (payment.paid) {
+          paidAmount += payment.amount;
+          paidCount++;
+        } else {
+          unpaidAmount += payment.amount;
+        }
+      }
+
+      return {
+        'totalAmount': totalAmount,
+        'paidAmount': paidAmount,
+        'unpaidAmount': unpaidAmount,
+        'totalCount': totalCount,
+        'paidCount': paidCount,
+        'unpaidCount': totalCount - paidCount,
+        'payments': payments,
+      };
+    } catch (e) {
+      throw 'Failed to fetch payment statistics. Please try again.';
+    }
+  }
+
   // ==================== USERS ====================
 
   // Get user by ID
@@ -347,5 +410,202 @@ class DatabaseService {
     }
 
     await updateOrderSessionTotal(sessionId, total);
+  }
+
+  // ==================== USER STATISTICS ====================
+
+  // Get user's orders for current month
+  Future<Map<String, dynamic>> getUserMonthlyStats(String userId) async {
+    try {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+      QuerySnapshot query = await _firestore
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
+          .get();
+
+      final orders = query.docs.map((doc) => OrderModel.Order.fromFirestore(doc)).toList();
+
+      double totalSpent = 0;
+      for (var order in orders) {
+        totalSpent += order.price * order.quantity;
+      }
+
+      return {
+        'orderCount': orders.length,
+        'totalSpent': totalSpent,
+        'orders': orders,
+      };
+    } catch (e) {
+      return {
+        'orderCount': 0,
+        'totalSpent': 0.0,
+        'orders': [],
+      };
+    }
+  }
+
+  // Get user's orders for today
+  Future<List<OrderModel.Order>> getUserTodayOrders(String userId) async {
+    try {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      QuerySnapshot query = await _firestore
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return query.docs.map((doc) => OrderModel.Order.fromFirestore(doc)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Get active groups for today (groups with isActive = true)
+  Future<List<String>> getActiveGroupIds(String userId) async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection('groups')
+          .where('memberIds', arrayContains: userId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return query.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Get user's recent orders for a specific group (for reorder functionality)
+  Future<List<OrderModel.Order>> getUserRecentOrdersForGroup(
+    String userId,
+    String groupId, {
+    int limit = 10,
+  }) async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .where('groupId', isEqualTo: groupId)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      final orders = query.docs
+          .map((doc) => OrderModel.Order.fromFirestore(doc))
+          .toList();
+
+      // Remove duplicates based on itemName (keep most recent)
+      final uniqueOrders = <String, OrderModel.Order>{};
+      for (var order in orders) {
+        if (!uniqueOrders.containsKey(order.itemName)) {
+          uniqueOrders[order.itemName] = order;
+        }
+      }
+
+      return uniqueOrders.values.toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ==================== FAVORITES ====================
+
+  // Add item to favorites
+  Future<String> addFavorite({
+    required String userId,
+    required String groupId,
+    required String itemName,
+    String? itemDescription,
+    required double price,
+    String? imageUrl,
+    String? notes,
+  }) async {
+    try {
+      // Check if already favorited
+      final existing = await _firestore
+          .collection('favorites')
+          .where('userId', isEqualTo: userId)
+          .where('groupId', isEqualTo: groupId)
+          .where('itemName', isEqualTo: itemName)
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        return existing.docs.first.id; // Already exists
+      }
+
+      final favorite = FavoriteItem(
+        id: '',
+        userId: userId,
+        groupId: groupId,
+        itemName: itemName,
+        itemDescription: itemDescription,
+        price: price,
+        imageUrl: imageUrl,
+        notes: notes,
+        createdAt: DateTime.now(),
+      );
+
+      final docRef = await _firestore.collection('favorites').add(favorite.toFirestore());
+      return docRef.id;
+    } catch (e) {
+      throw 'Failed to add favorite. Please try again.';
+    }
+  }
+
+  // Remove item from favorites
+  Future<void> removeFavorite(String favoriteId) async {
+    try {
+      await _firestore.collection('favorites').doc(favoriteId).delete();
+    } catch (e) {
+      throw 'Failed to remove favorite. Please try again.';
+    }
+  }
+
+  // Get user's favorites for a specific group
+  Stream<List<FavoriteItem>> getUserFavorites(String userId, String groupId) {
+    return _firestore
+        .collection('favorites')
+        .where('userId', isEqualTo: userId)
+        .where('groupId', isEqualTo: groupId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => FavoriteItem.fromFirestore(doc)).toList();
+    });
+  }
+
+  // Check if item is favorited
+  Future<String?> getFavoriteId({
+    required String userId,
+    required String groupId,
+    required String itemName,
+  }) async {
+    try {
+      final query = await _firestore
+          .collection('favorites')
+          .where('userId', isEqualTo: userId)
+          .where('groupId', isEqualTo: groupId)
+          .where('itemName', isEqualTo: itemName)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.id;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 }

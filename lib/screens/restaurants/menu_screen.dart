@@ -7,7 +7,11 @@ import '../../providers/auth_provider.dart';
 import '../../providers/group_provider.dart';
 import '../../models/menu_category.dart';
 import '../../models/menu_item.dart';
+import '../../models/order.dart' as OrderModel;
 import '../../utils/currency_utils.dart';
+import '../../utils/app_logger.dart';
+import '../../services/database_service.dart';
+import '../../widgets/order_deadline_banner.dart';
 
 // Menu screen with tabs for categories
 class MenuScreen extends StatefulWidget {
@@ -23,11 +27,55 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
   TabController? _tabController;
   int _currentTabLength = 0;
+  List<OrderModel.Order>? _recentOrders;
+  bool _loadingRecentOrders = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentOrders();
+  }
 
   @override
   void dispose() {
     _tabController?.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRecentOrders() async {
+    if (widget.groupId == null) {
+      setState(() {
+        _loadingRecentOrders = false;
+        _recentOrders = [];
+      });
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.user == null) {
+      setState(() {
+        _loadingRecentOrders = false;
+        _recentOrders = [];
+      });
+      return;
+    }
+
+    final databaseService = DatabaseService();
+    final orders = await databaseService.getUserRecentOrdersForGroup(
+      authProvider.user!.id,
+      widget.groupId!,
+      limit: 10,
+    );
+
+    if (mounted) {
+      setState(() {
+        _recentOrders = orders;
+        _loadingRecentOrders = false;
+      });
+    }
   }
 
   void _updateTabController(int length) {
@@ -43,7 +91,11 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
     return Consumer2<RestaurantProvider, GroupProvider>(
       builder: (context, restaurantProvider, groupProvider, child) {
         // Get real-time group active status
-        final isGroupActive = groupProvider.selectedGroup?.isActive ?? widget.isGroupActive;
+        final selectedGroupActive = groupProvider.selectedGroup?.isActive;
+        final parameterActive = widget.isGroupActive;
+        final isGroupActive = selectedGroupActive ?? parameterActive;
+
+        AppLogger.info('MenuScreen build | GroupID: ${widget.groupId} | selectedGroup.isActive: $selectedGroupActive | parameter.isGroupActive: $parameterActive | final isGroupActive: $isGroupActive');
         if (restaurantProvider.isLoading) {
           return Scaffold(
             appBar: AppBar(
@@ -126,22 +178,278 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
               }).toList(),
             ),
           ),
-          body: TabBarView(
-            controller: _tabController,
-            children: categories.map((category) {
-              return RefreshIndicator(
-                onRefresh: () => restaurantProvider.refreshMenu(),
-                child: _CategoryTabContent(
-                  category: category,
-                  groupId: widget.groupId,
-                  isGroupActive: isGroupActive,
+          body: Column(
+            children: [
+              // Quick Reorder Section
+              if (_recentOrders != null && _recentOrders!.isNotEmpty)
+                _buildQuickReorderSection(context, isGroupActive),
+              // Deadline Banner
+              if (groupProvider.selectedGroup?.orderDeadline != null &&
+                  groupProvider.selectedGroup!.isActive &&
+                  !groupProvider.selectedGroup!.isDeadlinePassed)
+                OrderDeadlineBanner(
+                  deadline: groupProvider.selectedGroup!.orderDeadline!,
                 ),
-              );
-            }).toList(),
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search menu items...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surface,
+                  ),
+                ),
+              ),
+              // Menu Categories
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: categories.map((category) {
+                    return RefreshIndicator(
+                      onRefresh: () => restaurantProvider.refreshMenu(),
+                      child: _CategoryTabContent(
+                        category: category,
+                        groupId: widget.groupId,
+                        isGroupActive: isGroupActive,
+                        searchQuery: _searchQuery,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         );
       },
     );
+  }
+
+  Widget _buildQuickReorderSection(BuildContext context, bool isGroupActive) {
+    return Container(
+      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.history,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Quick Reorder',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${_recentOrders!.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 110,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              scrollDirection: Axis.horizontal,
+              itemCount: _recentOrders!.length,
+              itemBuilder: (context, index) {
+                final order = _recentOrders![index];
+                return _buildQuickReorderCard(context, order, isGroupActive);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickReorderCard(
+    BuildContext context,
+    OrderModel.Order order,
+    bool isGroupActive,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: isGroupActive ? () => _quickReorder(order) : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 140,
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image
+              if (order.imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: order.imageUrl!,
+                    height: 50,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => Container(
+                      height: 50,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.fastfood, size: 24),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.fastfood, size: 24),
+                  ),
+                ),
+              const SizedBox(height: 6),
+              // Name
+              Text(
+                order.itemName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              // Price and Reorder button
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      CurrencyUtils.formatCurrency(order.price),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (isGroupActive)
+                    Icon(
+                      Icons.add_circle,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _quickReorder(OrderModel.Order order) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+
+    final user = authProvider.user;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to reorder')),
+      );
+      return;
+    }
+
+    // Show loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text('Adding ${order.itemName}...'),
+          ],
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final success = await orderProvider.createOrder(
+      userId: user.id,
+      userName: user.name,
+      itemName: order.itemName,
+      price: order.price,
+      quantity: order.quantity,
+      imageUrl: order.imageUrl,
+      groupId: widget.groupId,
+      notes: order.notes,
+    );
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${order.itemName} added to order!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(orderProvider.errorMessage ?? 'Failed to add item'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
 
@@ -149,22 +457,59 @@ class _CategoryTabContent extends StatelessWidget {
   final MenuCategory category;
   final String? groupId;
   final bool isGroupActive;
+  final String searchQuery;
 
   const _CategoryTabContent({
     required this.category,
     this.groupId,
     required this.isGroupActive,
+    required this.searchQuery,
   });
 
   @override
   Widget build(BuildContext context) {
     const locale = 'ar'; // Always use Arabic for menu items
 
+    // Filter items based on search query
+    final filteredItems = searchQuery.isEmpty
+        ? category.items
+        : category.items.where((item) {
+            final name = item.getLocalizedName(locale).toLowerCase();
+            final description = item.getLocalizedDescription(locale).toLowerCase();
+            return name.contains(searchQuery) || description.contains(searchQuery);
+          }).toList();
+
+    // If search is active and no results, show message
+    if (searchQuery.isNotEmpty && filteredItems.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No items found',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Try a different search term',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Category header with image and description
-        if (category.imageUri != null || category.getLocalizedDescription(locale).isNotEmpty)
+        // Category header with image and description (hide when searching)
+        if (searchQuery.isEmpty &&
+            (category.imageUri != null || category.getLocalizedDescription(locale).isNotEmpty))
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Column(
@@ -203,8 +548,20 @@ class _CategoryTabContent extends StatelessWidget {
               ],
             ),
           ),
+        // Search results count (when searching)
+        if (searchQuery.isNotEmpty && filteredItems.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              '${filteredItems.length} ${filteredItems.length == 1 ? 'result' : 'results'} found',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ),
         // Category items
-        ...category.items.map((item) => _MenuItemCard(
+        ...filteredItems.map((item) => _MenuItemCard(
               item: item,
               groupId: groupId,
               isGroupActive: isGroupActive,
@@ -230,6 +587,95 @@ class _MenuItemCard extends StatefulWidget {
 }
 
 class _MenuItemCardState extends State<_MenuItemCard> {
+  String? _favoriteId;
+  bool _isLoadingFavorite = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfFavorited();
+  }
+
+  Future<void> _checkIfFavorited() async {
+    if (widget.groupId == null) {
+      setState(() => _isLoadingFavorite = false);
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.user == null) {
+      setState(() => _isLoadingFavorite = false);
+      return;
+    }
+
+    final databaseService = DatabaseService();
+    const locale = 'ar';
+    final favoriteId = await databaseService.getFavoriteId(
+      userId: authProvider.user!.id,
+      groupId: widget.groupId!,
+      itemName: widget.item.getLocalizedName(locale),
+    );
+
+    if (mounted) {
+      setState(() {
+        _favoriteId = favoriteId;
+        _isLoadingFavorite = false;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (widget.groupId == null) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.user == null) return;
+
+    final databaseService = DatabaseService();
+    const locale = 'ar';
+
+    try {
+      if (_favoriteId != null) {
+        // Remove from favorites
+        await databaseService.removeFavorite(_favoriteId!);
+        if (mounted) {
+          setState(() => _favoriteId = null);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Removed from favorites'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        // Add to favorites
+        final favoriteId = await databaseService.addFavorite(
+          userId: authProvider.user!.id,
+          groupId: widget.groupId!,
+          itemName: widget.item.getLocalizedName(locale),
+          itemDescription: widget.item.getLocalizedDescription(locale),
+          price: widget.item.price,
+          imageUrl: widget.item.imageUri,
+        );
+        if (mounted) {
+          setState(() => _favoriteId = favoriteId);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Added to favorites'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Always use Arabic for menu items
@@ -303,6 +749,28 @@ class _MenuItemCardState extends State<_MenuItemCard> {
                   ],
                 ),
               ),
+              // Favorite button
+              if (widget.groupId != null)
+                _isLoadingFavorite
+                    ? const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    : IconButton(
+                        icon: Icon(
+                          _favoriteId != null ? Icons.favorite : Icons.favorite_border,
+                          color: _favoriteId != null ? Colors.red : Colors.grey,
+                        ),
+                        onPressed: _toggleFavorite,
+                        tooltip: _favoriteId != null ? 'Remove from favorites' : 'Add to favorites',
+                      ),
             ],
           ),
         ),
@@ -342,6 +810,13 @@ class _ItemDetailsBottomSheet extends StatefulWidget {
 class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
   int _quantity = 1;
   bool _isAdding = false;
+  final TextEditingController _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   void _increaseQuantity() {
     setState(() {
@@ -359,7 +834,10 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
 
   Future<void> _addToOrder() async {
     // Check if group is active before allowing order
+    AppLogger.info('_addToOrder called | widget.isGroupActive: ${widget.isGroupActive} | groupId: ${widget.groupId}');
+
     if (!widget.isGroupActive) {
+      AppLogger.warning('Order blocked: Group is not active (isGroupActive: false)');
       Navigator.pop(context); // Close bottom sheet first
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -371,6 +849,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
       return;
     }
 
+    AppLogger.info('Order check passed, proceeding to add order...');
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
     const locale = 'ar'; // Always use Arabic for menu items
@@ -395,6 +874,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
       quantity: _quantity,
       imageUrl: widget.item.imageUri,
       groupId: widget.groupId,
+      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
     );
 
     setState(() {
@@ -547,6 +1027,29 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                               ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Special instructions
+                  Text(
+                    'Special Instructions',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _notesController,
+                    maxLines: 3,
+                    maxLength: 200,
+                    decoration: InputDecoration(
+                      hintText: 'E.g., No onions, Extra spicy...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
+                      prefixIcon: const Icon(Icons.note_alt_outlined),
                     ),
                   ),
                   const SizedBox(height: 16),

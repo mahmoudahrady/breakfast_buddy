@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -13,11 +14,45 @@ class CreateGroupScreen extends StatefulWidget {
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  DateTime? _orderDeadline;
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDeadline() async {
+    final now = DateTime.now();
+    final tomorrow = now.add(const Duration(days: 1));
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: tomorrow,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 30)),
+      helpText: 'Select Order Deadline Date',
+    );
+
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 12, minute: 0),
+      helpText: 'Select Order Deadline Time',
+    );
+
+    if (time == null || !mounted) return;
+
+    setState(() {
+      _orderDeadline = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
   }
 
   Future<void> _createGroup() async {
@@ -40,6 +75,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       description: '',
       admin: authProvider.user!,
       allowMembersToAddItems: false,
+      orderDeadline: _orderDeadline,
     );
 
     if (mounted) {
@@ -95,6 +131,64 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Order Deadline (Optional)
+              Card(
+                child: InkWell(
+                  onTap: _pickDeadline,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Order Deadline',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _orderDeadline == null
+                                    ? 'Optional - Tap to set'
+                                    : DateFormat('MMM d, yyyy • h:mm a').format(_orderDeadline!),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: _orderDeadline == null
+                                          ? Colors.grey[600]
+                                          : Theme.of(context).colorScheme.primary,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_orderDeadline != null)
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                _orderDeadline = null;
+                              });
+                            },
+                            tooltip: 'Remove deadline',
+                          )
+                        else
+                          const Icon(Icons.arrow_forward_ios, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               // Info card
               Card(
                 color: Colors.blue.shade50,
@@ -136,12 +230,27 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 onPressed: groupProvider.isLoading ? null : _createGroup,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  disabledBackgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                  disabledForegroundColor: Colors.white,
                 ),
                 child: groupProvider.isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Creating Group...',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
                       )
                     : const Text(
                         'Create Group',

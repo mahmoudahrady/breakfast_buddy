@@ -3,6 +3,7 @@ import '../models/group.dart';
 import '../models/group_member.dart';
 import '../models/group_restaurant.dart';
 import '../models/app_user.dart';
+import '../utils/app_logger.dart';
 
 class GroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,6 +21,7 @@ class GroupService {
     required String description,
     required AppUser admin,
     required bool allowMembersToAddItems,
+    DateTime? orderDeadline,
   }) async {
     try {
       final groupData = {
@@ -31,10 +33,14 @@ class GroupService {
         'allowMembersToAddItems': allowMembersToAddItems,
         'isActive': true, // New groups are active by default
         'createdAt': FieldValue.serverTimestamp(),
+        if (orderDeadline != null)
+          'orderDeadline': Timestamp.fromDate(orderDeadline),
       };
 
       final docRef = await _groupsCollection.add(groupData);
       final doc = await docRef.get();
+
+      AppLogger.info('Group created: ${doc.id} | Name: $name | isActive: true | Admin: ${admin.name}');
 
       // Add admin as first member
       await addMember(
@@ -43,7 +49,10 @@ class GroupService {
         isAdmin: true,
       );
 
-      return Group.fromFirestore(doc);
+      final createdGroup = Group.fromFirestore(doc);
+      AppLogger.debug('Group loaded from Firestore: ${createdGroup.id} | isActive: ${createdGroup.isActive}');
+
+      return createdGroup;
     } catch (e) {
       throw Exception('Failed to create group: $e');
     }
@@ -63,9 +72,15 @@ class GroupService {
   Future<Group?> getGroup(String groupId) async {
     try {
       final doc = await _groupsCollection.doc(groupId).get();
-      if (!doc.exists) return null;
-      return Group.fromFirestore(doc);
+      if (!doc.exists) {
+        AppLogger.warning('Group not found: $groupId');
+        return null;
+      }
+      final group = Group.fromFirestore(doc);
+      AppLogger.debug('Group fetched: ${group.id} | isActive: ${group.isActive} | Name: ${group.name}');
+      return group;
     } catch (e) {
+      AppLogger.error('Failed to get group: $groupId', e);
       throw Exception('Failed to get group: $e');
     }
   }

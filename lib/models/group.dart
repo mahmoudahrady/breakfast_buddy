@@ -10,6 +10,7 @@ class Group {
   final bool allowMembersToAddItems;
   final bool isActive;
   final DateTime createdAt;
+  final DateTime? orderDeadline; // Optional deadline for placing orders
 
   Group({
     required this.id,
@@ -21,6 +22,7 @@ class Group {
     required this.allowMembersToAddItems,
     required this.isActive,
     required this.createdAt,
+    this.orderDeadline,
   });
 
   // Check if a user is the admin
@@ -32,6 +34,20 @@ class Group {
   // Check if a user can add items
   bool canAddItems(String userId) =>
       isAdmin(userId) || (isMember(userId) && allowMembersToAddItems);
+
+  // Check if deadline has passed
+  bool get isDeadlinePassed {
+    if (orderDeadline == null) return false;
+    return DateTime.now().isAfter(orderDeadline!);
+  }
+
+  // Get time remaining until deadline
+  Duration? get timeUntilDeadline {
+    if (orderDeadline == null) return null;
+    final now = DateTime.now();
+    if (now.isAfter(orderDeadline!)) return null;
+    return orderDeadline!.difference(now);
+  }
 
   // Factory constructor to create Group from Firestore document
   factory Group.fromFirestore(DocumentSnapshot doc) {
@@ -46,6 +62,9 @@ class Group {
       allowMembersToAddItems: data['allowMembersToAddItems'] ?? false,
       isActive: data['isActive'] ?? true, // Default to true for backward compatibility
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      orderDeadline: data['orderDeadline'] != null
+          ? (data['orderDeadline'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -60,6 +79,8 @@ class Group {
       'allowMembersToAddItems': allowMembersToAddItems,
       'isActive': isActive,
       'createdAt': Timestamp.fromDate(createdAt),
+      if (orderDeadline != null)
+        'orderDeadline': Timestamp.fromDate(orderDeadline!),
     };
   }
 
@@ -74,6 +95,7 @@ class Group {
     bool? allowMembersToAddItems,
     bool? isActive,
     DateTime? createdAt,
+    DateTime? orderDeadline,
   }) {
     return Group(
       id: id ?? this.id,
@@ -86,6 +108,7 @@ class Group {
           allowMembersToAddItems ?? this.allowMembersToAddItems,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
+      orderDeadline: orderDeadline ?? this.orderDeadline,
     );
   }
 }

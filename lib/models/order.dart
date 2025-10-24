@@ -10,6 +10,7 @@ class Order {
   final double price;
   final int quantity;
   final String? imageUrl;
+  final String? notes; // Special instructions or customizations
   final DateTime createdAt;
 
   Order({
@@ -22,6 +23,7 @@ class Order {
     required this.price,
     this.quantity = 1,
     this.imageUrl,
+    this.notes,
     required this.createdAt,
   });
 
@@ -38,6 +40,7 @@ class Order {
       price: (data['price'] ?? 0).toDouble(),
       quantity: data['quantity'] ?? 1,
       imageUrl: data['imageUrl'],
+      notes: data['notes'],
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
   }
@@ -53,6 +56,7 @@ class Order {
       'price': price,
       'quantity': quantity,
       'imageUrl': imageUrl,
+      if (notes != null && notes!.isNotEmpty) 'notes': notes,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -68,6 +72,7 @@ class Order {
     double? price,
     int? quantity,
     String? imageUrl,
+    String? notes,
     DateTime? createdAt,
   }) {
     return Order(
@@ -80,6 +85,7 @@ class Order {
       price: price ?? this.price,
       quantity: quantity ?? this.quantity,
       imageUrl: imageUrl ?? this.imageUrl,
+      notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
     );
   }

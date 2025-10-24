@@ -5,6 +5,7 @@ import '../models/group_member.dart';
 import '../models/group_restaurant.dart';
 import '../models/app_user.dart';
 import '../services/group_service.dart';
+import '../utils/app_logger.dart';
 
 class GroupProvider with ChangeNotifier {
   final GroupService _groupService = GroupService();
@@ -64,9 +65,11 @@ class GroupProvider with ChangeNotifier {
 
     try {
       // Load group details
+      AppLogger.info('Selecting group: $groupId');
       final group = await _groupService.getGroup(groupId);
       if (group != null) {
         _selectedGroup = group;
+        AppLogger.info('Group selected in provider: ${group.id} | isActive: ${group.isActive} | Name: ${group.name}');
 
         // Cancel existing subscriptions
         await _selectedGroupSubscription?.cancel();
@@ -78,10 +81,12 @@ class GroupProvider with ChangeNotifier {
           (group) {
             if (group != null) {
               _selectedGroup = group;
+              AppLogger.debug('Group updated via stream: ${group.id} | isActive: ${group.isActive}');
               notifyListeners();
             }
           },
           onError: (error) {
+            AppLogger.error('Failed to load group updates', error);
             _setError('Failed to load group updates: $error');
           },
         );
@@ -127,6 +132,7 @@ class GroupProvider with ChangeNotifier {
     required String description,
     required AppUser admin,
     required bool allowMembersToAddItems,
+    DateTime? orderDeadline,
   }) async {
     _setLoading(true);
     _clearError();
@@ -137,6 +143,7 @@ class GroupProvider with ChangeNotifier {
         description: description,
         admin: admin,
         allowMembersToAddItems: allowMembersToAddItems,
+        orderDeadline: orderDeadline,
       );
       _setLoading(false);
       notifyListeners();

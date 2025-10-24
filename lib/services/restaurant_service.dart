@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/menu_category.dart';
 import '../models/modifier.dart';
 import '../models/allergen.dart';
+import '../utils/app_logger.dart';
 
 class MenuData {
   final List<MenuCategory> categories;
@@ -31,8 +32,7 @@ class RestaurantService {
         throw Exception('Failed to load menu data: ${response.statusCode}');
       }
     } catch (e) {
-              print('error test: $e');
-
+      AppLogger.error('Error fetching menu data', e);
       throw Exception('Error fetching menu data: $e');
     }
   }
@@ -64,13 +64,13 @@ class RestaurantService {
             final groupJson = modifierGroupsList[i] as Map<String, dynamic>;
             // Skip modifier groups with null or missing id
             if (groupJson['id'] == null) {
-              print('Warning: Skipping modifier group at index $i with null id');
+              AppLogger.warning('Skipping modifier group at index $i with null id');
               continue;
             }
             final group = ModifierGroup.fromJson(groupJson);
             modifierGroupsMap[group.id] = group;
           } catch (e) {
-            print('Warning: Failed to parse modifier group at index $i: $e');
+            AppLogger.warning('Failed to parse modifier group at index $i', e);
             // Skip invalid modifier groups instead of crashing
             continue;
           }
@@ -86,13 +86,13 @@ class RestaurantService {
             final modifierJson = modifiersList[i] as Map<String, dynamic>;
             // Skip modifiers with null or missing id
             if (modifierJson['id'] == null) {
-              print('Warning: Skipping modifier at index $i with null id');
+              AppLogger.warning('Skipping modifier at index $i with null id');
               continue;
             }
             final modifier = Modifier.fromJson(modifierJson);
             modifiersMap[modifier.id] = modifier;
           } catch (e) {
-            print('Warning: Failed to parse modifier at index $i: $e');
+            AppLogger.warning('Failed to parse modifier at index $i', e);
             // Skip invalid modifiers instead of crashing
             continue;
           }
@@ -108,13 +108,13 @@ class RestaurantService {
             final allergenJson = allergensList[i] as Map<String, dynamic>;
             // Skip allergens with null or missing id
             if (allergenJson['id'] == null) {
-              print('Warning: Skipping allergen at index $i with null id');
+              AppLogger.warning('Skipping allergen at index $i with null id');
               continue;
             }
             final allergen = Allergen.fromJson(allergenJson);
             allergensMap[allergen.id] = allergen;
           } catch (e) {
-            print('Warning: Failed to parse allergen at index $i: $e');
+            AppLogger.warning('Failed to parse allergen at index $i', e);
             // Skip invalid allergens instead of crashing
             continue;
           }

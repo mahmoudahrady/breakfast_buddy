@@ -14,9 +14,15 @@ import '../../models/order.dart';
 import '../../models/payment.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/currency_display.dart';
+import '../../widgets/order_deadline_banner.dart';
 import 'add_restaurant_to_group_screen.dart';
-import '../payments/payment_tracking_screen.dart';
 import '../restaurants/menu_screen.dart';
+import 'group_invitation_dialog.dart';
+import '../orders/order_confirmation_screen.dart';
+import '../payments/split_calculator_screen.dart';
+import 'group_insights_screen.dart';
+import '../favorites/favorites_screen.dart';
+import 'group_settings_screen.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final String groupId;
@@ -59,6 +65,12 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     );
   }
 
+  void _showInvitationDialog(BuildContext context, Group group) {
+    showDialog(
+      context: context,
+      builder: (context) => GroupInvitationDialog(group: group),
+    );
+  }
 
   Future<void> _toggleGroupActiveStatus(
       GroupProvider groupProvider, Group? group) async {
@@ -322,6 +334,37 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         title: Text(group.name),
         actions: [
           IconButton(
+            icon: const Icon(Icons.insights),
+            tooltip: 'Group Insights',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GroupInsightsScreen(groupId: widget.groupId),
+                ),
+              );
+            },
+          ),
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Group Settings',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupSettingsScreen(groupId: widget.groupId),
+                  ),
+                );
+              },
+            ),
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.qr_code_2),
+              tooltip: 'Invite Members',
+              onPressed: () => _showInvitationDialog(context, group),
+            ),
+          IconButton(
             icon: const Icon(Icons.content_copy),
             tooltip: 'Copy Group ID',
             onPressed: _copyGroupId,
@@ -417,6 +460,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               ],
             ),
           ),
+
+          // Deadline Banner
+          if (group.orderDeadline != null && group.isActive && !group.isDeadlinePassed)
+            OrderDeadlineBanner(deadline: group.orderDeadline!),
 
           // Tab content
           Expanded(
@@ -688,6 +735,29 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ),
         ),
 
+        // Favorites Button
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FavoritesScreen(groupId: widget.groupId),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.favorite),
+              label: const Text('View My Favorites'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ),
+
         // Orders list
         Expanded(
           child: ListView.builder(
@@ -814,7 +884,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
 
   Widget _buildOrdersTab(GroupProvider groupProvider, bool isAdmin, group) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
     final databaseService = DatabaseService();
 
     if (groupProvider.members.isEmpty) {
@@ -948,12 +1017,44 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     ],
                   ),
                   const SizedBox(height: 12),
+                  // Split Calculator Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SplitCalculatorScreen(
+                              groupId: widget.groupId,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.calculate),
+                      label: const Text('Split Calculator'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Confirm Orders Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _confirmOrders(orderProvider, groupProvider),
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text('Confirm All Orders'),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OrderConfirmationScreen(
+                              groupId: widget.groupId,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('Review & Confirm Orders'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,

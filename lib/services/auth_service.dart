@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/app_user.dart';
+import '../utils/app_logger.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -21,7 +22,7 @@ class AuthService {
     required String name,
   }) async {
     try {
-      print('Starting signup for email: $email');
+      AppLogger.info('Starting signup for email: $email');
 
       // Create user in Firebase Auth
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -31,11 +32,11 @@ class AuthService {
 
       User? firebaseUser = result.user;
       if (firebaseUser == null) {
-        print('Error: Firebase user is null after signup');
+        AppLogger.error('Firebase user is null after signup');
         return null;
       }
 
-      print('Firebase user created: ${firebaseUser.uid}');
+      AppLogger.info('Firebase user created: ${firebaseUser.uid}');
 
       // Create user document in Firestore
       AppUser newUser = AppUser(
@@ -45,24 +46,24 @@ class AuthService {
         createdAt: DateTime.now(),
       );
 
-      print('Attempting to save user document to Firestore...');
+      AppLogger.debug('Attempting to save user document to Firestore...');
       await _firestore
           .collection('users')
           .doc(firebaseUser.uid)
           .set(newUser.toFirestore());
 
-      print('User document saved successfully');
+      AppLogger.info('User document saved successfully');
 
       // Update display name
       await firebaseUser.updateDisplayName(name);
-      print('Display name updated');
+      AppLogger.debug('Display name updated');
 
       return newUser;
     } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException: ${e.code} - ${e.message}');
+      AppLogger.error('FirebaseAuthException: ${e.code} - ${e.message}', e);
       throw _handleAuthException(e);
     } catch (e) {
-      print('Unexpected error during signup: $e');
+      AppLogger.error('Unexpected error during signup', e);
       throw 'An error occurred during sign up: $e';
     }
   }
@@ -98,22 +99,22 @@ class AuthService {
   // Sign in with Google
   Future<AppUser?> signInWithGoogle() async {
     try {
-      print('Starting Google Sign-In...');
+      AppLogger.info('Starting Google Sign-In...');
 
       // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        print('Google Sign-In cancelled by user');
+        AppLogger.info('Google Sign-In cancelled by user');
         return null; // User cancelled the sign-in
       }
 
-      print('Google user selected: ${googleUser.email}');
+      AppLogger.info('Google user selected: ${googleUser.email}');
 
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      print('Got Google auth tokens');
+      AppLogger.debug('Got Google auth tokens');
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
@@ -121,18 +122,18 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
 
-      print('Created Firebase credential');
+      AppLogger.debug('Created Firebase credential');
 
       // Sign in to Firebase with the Google credential
       UserCredential result = await _auth.signInWithCredential(credential);
 
       User? firebaseUser = result.user;
       if (firebaseUser == null) {
-        print('Error: Firebase user is null after Google Sign-In');
+        AppLogger.error('Firebase user is null after Google Sign-In');
         return null;
       }
 
-      print('Firebase user authenticated: ${firebaseUser.uid}');
+      AppLogger.info('Firebase user authenticated: ${firebaseUser.uid}');
 
       // Check if user document exists in Firestore
       DocumentSnapshot userDoc =
@@ -141,7 +142,7 @@ class AuthService {
       AppUser appUser;
 
       if (!userDoc.exists) {
-        print('Creating new user document in Firestore...');
+        AppLogger.info('Creating new user document in Firestore...');
         // Create new user document if it doesn't exist
         appUser = AppUser(
           id: firebaseUser.uid,
@@ -156,18 +157,18 @@ class AuthService {
             .doc(firebaseUser.uid)
             .set(appUser.toFirestore());
 
-        print('User document created successfully');
+        AppLogger.info('User document created successfully');
       } else {
-        print('User document already exists, loading...');
+        AppLogger.debug('User document already exists, loading...');
         appUser = AppUser.fromFirestore(userDoc);
       }
 
       return appUser;
     } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException during Google Sign-In: ${e.code} - ${e.message}');
+      AppLogger.error('FirebaseAuthException during Google Sign-In: ${e.code} - ${e.message}', e);
       throw _handleAuthException(e);
     } catch (e) {
-      print('Unexpected error during Google Sign-In: $e');
+      AppLogger.error('Unexpected error during Google Sign-In', e);
       throw 'An error occurred during Google Sign-In: $e';
     }
   }

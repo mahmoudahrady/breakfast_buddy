@@ -3,6 +3,7 @@ import '../models/order.dart';
 import '../models/order_session.dart';
 import '../models/payment.dart';
 import '../services/database_service.dart';
+import '../utils/app_logger.dart';
 
 class OrderProvider with ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
@@ -22,43 +23,43 @@ class OrderProvider with ChangeNotifier {
 
   // Get or create today's session
   Future<void> initTodaySession(String userId, String userName) async {
-    print('[PROVIDER] initTodaySession called for user: $userName ($userId)');
+    AppLogger.info('initTodaySession called for user: $userName ($userId)');
     _setLoading(true);
     _errorMessage = null;
 
     try {
-      print('[PROVIDER] Fetching today\'s session from database...');
+      AppLogger.debug('Fetching today\'s session from database...');
       // Try to get today's session
       _currentSession = await _databaseService.getTodayOrderSession();
-      print('[PROVIDER] Existing session: $_currentSession');
+      AppLogger.debug('Existing session: $_currentSession');
 
       // If no session exists, create one
       if (_currentSession == null) {
-        print('[PROVIDER] No existing session, creating new one...');
+        AppLogger.info('No existing session, creating new one...');
         String sessionId = await _databaseService.createOrderSession(
           userId: userId,
           userName: userName,
         );
-        print('[PROVIDER] New session created with ID: $sessionId');
+        AppLogger.info('New session created with ID: $sessionId');
         _currentSession = await _databaseService.getOrderSession(sessionId);
-        print('[PROVIDER] Session loaded: $_currentSession');
+        AppLogger.debug('Session loaded: $_currentSession');
       }
 
       // Subscribe to session updates
       if (_currentSession != null) {
-        print('[PROVIDER] Subscribing to session updates...');
+        AppLogger.debug('Subscribing to session updates...');
         _subscribeToSession(_currentSession!.id);
-        print('[PROVIDER] Subscription complete');
+        AppLogger.debug('Subscription complete');
       } else {
-        print('[PROVIDER] ERROR: Session is still null after creation!');
+        AppLogger.error('Session is still null after creation!');
       }
 
       _setLoading(false);
-      print('[PROVIDER] initTodaySession completed successfully');
-      print('[PROVIDER] hasActiveSession: $hasActiveSession');
+      AppLogger.info('initTodaySession completed successfully');
+      AppLogger.debug('hasActiveSession: $hasActiveSession');
       notifyListeners();
     } catch (e) {
-      print('[PROVIDER] ERROR in initTodaySession: $e');
+      AppLogger.error('Error in initTodaySession', e);
       _errorMessage = e.toString();
       _setLoading(false);
       notifyListeners();
@@ -95,6 +96,7 @@ class OrderProvider with ChangeNotifier {
     int quantity = 1,
     String? imageUrl,
     String? groupId,
+    String? notes,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -102,7 +104,7 @@ class OrderProvider with ChangeNotifier {
     try {
       // Auto-create session if it doesn't exist
       if (_currentSession == null) {
-        print('[ORDER_PROVIDER] No active session, creating one...');
+        AppLogger.info('No active session, creating one...');
         await initTodaySession(userId, userName);
       }
 
@@ -123,6 +125,7 @@ class OrderProvider with ChangeNotifier {
         price: price,
         quantity: quantity,
         imageUrl: imageUrl,
+        notes: notes,
       );
 
       // Update payment tracking
