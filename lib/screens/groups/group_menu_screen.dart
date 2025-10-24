@@ -5,6 +5,7 @@ import '../../providers/group_provider.dart';
 import '../../providers/restaurant_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../models/group_restaurant.dart';
 import '../../models/restaurant.dart';
 import '../../models/menu_category.dart';
@@ -87,6 +88,90 @@ class _GroupMenuScreenState extends State<GroupMenuScreen> {
                 onPressed: _backToRestaurantList,
               )
             : null,
+        actions: [
+          // Settings Menu (Three Dots)
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              return PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded),
+                tooltip: 'Settings',
+                onSelected: (value) async {
+                  switch (value) {
+                    case 'theme':
+                      themeProvider.toggleTheme();
+                      break;
+                    case 'logout':
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Logout'),
+                          content: const Text('Are you sure you want to logout?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Logout'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true && context.mounted) {
+                        await authProvider.signOut();
+                      }
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    value: 'theme',
+                    child: Row(
+                      children: [
+                        Icon(
+                          themeProvider.isDarkMode
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_rounded,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          themeProvider.isDarkMode
+                              ? 'Light Mode'
+                              : 'Dark Mode',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.logout_rounded,
+                          size: 20,
+                          color: Colors.red,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Logout',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: groupProvider.restaurants.isEmpty
           ? _buildEmptyState()

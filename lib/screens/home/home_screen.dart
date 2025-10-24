@@ -78,26 +78,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Breakfast Buddy'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        actions: [
-          // Theme Toggle Button
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, _) => IconButton(
-              icon: Icon(
-                themeProvider.isDarkMode
-                    ? Icons.light_mode
-                    : Icons.dark_mode,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(12),
               ),
-              onPressed: () => themeProvider.toggleTheme(),
-              tooltip: themeProvider.isDarkMode
-                  ? 'Switch to Light Mode'
-                  : 'Switch to Dark Mode',
+              child: const Icon(
+                Icons.restaurant,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
+            const Text('Breakfast Buddy'),
+          ],
+        ),
+        actions: [
           // Groups Button
           IconButton(
-            icon: const Icon(Icons.groups),
+            icon: const Icon(Icons.groups_rounded),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -107,14 +109,85 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             tooltip: 'My Groups',
           ),
-          // Logout Button
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authProvider.signOut();
-            },
-            tooltip: 'Logout',
+          // Settings Menu (Three Dots)
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) => PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded),
+              tooltip: 'Settings',
+              onSelected: (value) async {
+                switch (value) {
+                  case 'theme':
+                    themeProvider.toggleTheme();
+                    break;
+                  case 'logout':
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Logout'),
+                        content: const Text('Are you sure you want to logout?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Logout'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true && context.mounted) {
+                      await authProvider.signOut();
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'theme',
+                  child: Row(
+                    children: [
+                      Icon(
+                        themeProvider.isDarkMode
+                            ? Icons.light_mode_rounded
+                            : Icons.dark_mode_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        themeProvider.isDarkMode
+                            ? 'Light Mode'
+                            : 'Dark Mode',
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.logout_rounded,
+                        size: 20,
+                        color: Colors.red,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
@@ -125,53 +198,112 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting Section
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: Text(
-                      authProvider.user?.name[0].toUpperCase() ?? 'U',
-                      style: const TextStyle(
+              // Modern Hero Section
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.secondary,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 32,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: Text(
+                          authProvider.user?.name[0].toUpperCase() ?? 'U',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${_getGreeting()},',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        Text(
-                          authProvider.user?.name ?? 'User',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getGreeting(),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            authProvider.user?.name ?? 'User',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // Today's Active Orders (if any)
               if (_todayOrders != null && _todayOrders!.isNotEmpty) ...[
-                Text(
-                  '🔥 Active Today',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Active Today',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Card(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   child: Padding(
@@ -252,13 +384,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
 
               // Quick Stats
-              Text(
-                '📊 This Month',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: const Icon(
+                      Icons.bar_chart_rounded,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'This Month',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -313,13 +462,30 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '👥 My Groups',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: const Icon(
+                          Icons.groups_rounded,
+                          color: Colors.purple,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'My Groups',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
                   ),
-                  TextButton(
+                  TextButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -327,11 +493,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     },
-                    child: const Text('See All'),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                    label: const Text('See All'),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               groupProvider.userGroups.isEmpty
                   ? Card(
@@ -411,22 +578,44 @@ class _HomeScreenState extends State<HomeScreen> {
     Color color,
   ) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      child: Container(
+        padding: const EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withOpacity(0.1),
+              color.withOpacity(0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 24, color: color),
+            ),
+            const SizedBox(height: 16),
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: color,
                   ),
             ),
+            const SizedBox(height: 4),
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
                   ),
             ),
           ],
@@ -437,24 +626,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSpendingCard(BuildContext context, double amount) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      child: Container(
+        padding: const EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.green.withOpacity(0.1),
+              Colors.green.withOpacity(0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.payments, size: 24, color: Colors.green),
-                const SizedBox(width: 8),
-                Text(
-                  'Total Spent',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.payments_rounded, size: 24, color: Colors.green),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             CurrencyDisplay(
               amount: amount,
               textStyle: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -463,6 +659,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
               iconColor: Colors.green,
               iconSize: 20,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Total Spent',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ],
         ),

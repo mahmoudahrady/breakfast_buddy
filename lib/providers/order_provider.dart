@@ -225,7 +225,11 @@ class OrderProvider with ChangeNotifier {
 
   // Mark payment as paid
   Future<bool> markPaymentAsPaid(String userId) async {
-    if (_currentSession == null) return false;
+    if (_currentSession == null) {
+      _errorMessage = 'No active session found. Please refresh and try again.';
+      notifyListeners();
+      return false;
+    }
 
     _setLoading(true);
     _errorMessage = null;

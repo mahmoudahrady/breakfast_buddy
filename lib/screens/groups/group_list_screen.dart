@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../models/group.dart';
 import 'create_group_screen.dart';
 import 'group_details_screen.dart';
@@ -86,10 +87,89 @@ class _GroupListScreenState extends State<GroupListScreen> {
         title: const Text('My Groups'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add),
+            icon: const Icon(Icons.person_add_rounded),
             tooltip: 'Join Group',
             onPressed: _navigateToJoinGroup,
           ),
+          // Settings Menu (Three Dots)
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) => PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded),
+              tooltip: 'Settings',
+              onSelected: (value) async {
+                switch (value) {
+                  case 'theme':
+                    themeProvider.toggleTheme();
+                    break;
+                  case 'logout':
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Logout'),
+                        content: const Text('Are you sure you want to logout?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Logout'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true && context.mounted) {
+                      await authProvider.signOut();
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'theme',
+                  child: Row(
+                    children: [
+                      Icon(
+                        themeProvider.isDarkMode
+                            ? Icons.light_mode_rounded
+                            : Icons.dark_mode_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        themeProvider.isDarkMode
+                            ? 'Light Mode'
+                            : 'Dark Mode',
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.logout_rounded,
+                        size: 20,
+                        color: Colors.red,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: groupProvider.isLoading
@@ -108,33 +188,54 @@ class _GroupListScreenState extends State<GroupListScreen> {
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.groups_outlined,
-              size: 100,
-              color: Colors.grey.shade400,
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.groups_rounded,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
             Text(
               'No Groups Yet',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.grey.shade600,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              'Create a group to share meals with friends',
-              style: TextStyle(color: Colors.grey.shade600),
+              'Create a group to share meals with friends\nand split the bill easily',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: _navigateToCreateGroup,
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: const Text('Create Your First Group'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _navigateToJoinGroup,
+              icon: const Icon(Icons.login_rounded),
+              label: const Text('Join Existing Group'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
             ),
           ],
         ),
@@ -155,68 +256,186 @@ class _GroupListScreenState extends State<GroupListScreen> {
           final isAdmin = currentUserId != null && group.isAdmin(currentUserId);
 
           return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: isAdmin ? Colors.orange : Colors.blue,
-                child: Icon(
-                  isAdmin ? Icons.admin_panel_settings : Icons.group,
-                  color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: InkWell(
+              onTap: () => _navigateToGroupDetails(group),
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Group Avatar with gradient
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isAdmin
+                              ? [Colors.orange, Colors.deepOrange]
+                              : [Colors.blue, Colors.indigo],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (isAdmin ? Colors.orange : Colors.blue).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        isAdmin ? Icons.admin_panel_settings_rounded : Icons.groups_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Group Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  group.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isAdmin) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.orange.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.star_rounded,
+                                        size: 12,
+                                        color: Colors.orange,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Admin',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          if (group.description.isNotEmpty)
+                            Text(
+                              group.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.people_rounded,
+                                      size: 14,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${group.memberIds.length} members',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (group.isActive) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.circle,
+                                        size: 8,
+                                        color: Colors.green.shade700,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Active',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Chevron
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.grey.shade400,
+                      size: 28,
+                    ),
+                  ],
                 ),
               ),
-              title: Text(
-                group.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text(
-                    group.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.people, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${group.memberIds.length} members',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      if (isAdmin) ...[
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Admin',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              isThreeLine: true,
-              onTap: () => _navigateToGroupDetails(group),
             ),
           );
         },

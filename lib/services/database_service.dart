@@ -285,8 +285,13 @@ class DatabaseService {
           'paid': true,
           'paidAt': Timestamp.fromDate(DateTime.now()),
         });
+      } else {
+        throw 'Payment record not found for this user';
       }
     } catch (e) {
+      if (e is String) {
+        throw e;
+      }
       throw 'Failed to mark payment as paid. Please try again.';
     }
   }
