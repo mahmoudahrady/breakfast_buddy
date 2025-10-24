@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/group_provider.dart';
 import '../../models/menu_category.dart';
 import '../../models/menu_item.dart';
+import '../../models/modifier.dart';
 import '../../models/order.dart' as OrderModel;
 import '../../utils/currency_utils.dart';
 import '../../utils/app_logger.dart';
@@ -811,11 +812,58 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
   int _quantity = 1;
   bool _isAdding = false;
   final TextEditingController _notesController = TextEditingController();
+  final Map<int, List<int>> _selectedModifiers = {}; // modifierGroupId -> [modifierIds]
 
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _toggleModifier(ModifierGroup group, int modifierId) {
+    setState(() {
+      if (!_selectedModifiers.containsKey(group.id)) {
+        _selectedModifiers[group.id] = [];
+      }
+
+      final selectedList = _selectedModifiers[group.id]!;
+
+      if (group.type == 'SINGLE') {
+        // For single selection, clear and set new
+        selectedList.clear();
+        selectedList.add(modifierId);
+      } else {
+        // For multiple selection
+        if (selectedList.contains(modifierId)) {
+          selectedList.remove(modifierId);
+        } else {
+          // Check maximum constraint
+          if (selectedList.length < group.maximum) {
+            selectedList.add(modifierId);
+          }
+        }
+      }
+    });
+  }
+
+  bool _isModifierSelected(int groupId, int modifierId) {
+    return _selectedModifiers[groupId]?.contains(modifierId) ?? false;
+  }
+
+  double _calculateModifiersPrice() {
+    double total = 0.0;
+    final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+
+    _selectedModifiers.forEach((groupId, modifierIds) {
+      for (var modifierId in modifierIds) {
+        final modifier = restaurantProvider.modifiers[modifierId];
+        if (modifier != null) {
+          total += modifier.price;
+        }
+      }
+    });
+
+    return total;
   }
 
   void _increaseQuantity() {
@@ -852,6 +900,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
     AppLogger.info('Order check passed, proceeding to add order...');
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
     const locale = 'ar'; // Always use Arabic for menu items
 
     final user = authProvider.user;
@@ -862,6 +911,26 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
       return;
     }
 
+    // Build item name with modifiers
+    String itemNameWithModifiers = widget.item.getLocalizedName(locale);
+    final List<String> modifierNames = [];
+
+    _selectedModifiers.forEach((groupId, modifierIds) {
+      for (var modifierId in modifierIds) {
+        final modifier = restaurantProvider.modifiers[modifierId];
+        if (modifier != null) {
+          modifierNames.add(modifier.getLocalizedName(locale));
+        }
+      }
+    });
+
+    if (modifierNames.isNotEmpty) {
+      itemNameWithModifiers += ' (${modifierNames.join(', ')})';
+    }
+
+    // Calculate total price including modifiers
+    final totalPrice = widget.item.price + _calculateModifiersPrice();
+
     setState(() {
       _isAdding = true;
     });
@@ -869,8 +938,8 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
     final success = await orderProvider.createOrder(
       userId: user.id,
       userName: user.name,
-      itemName: widget.item.getLocalizedName(locale),
-      price: widget.item.price,
+      itemName: itemNameWithModifiers,
+      price: totalPrice,
       quantity: _quantity,
       imageUrl: widget.item.imageUri,
       groupId: widget.groupId,
@@ -967,6 +1036,118 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                         ),
                   ),
                   const SizedBox(height: 24),
+                  // Modifiers Section
+                  if (widget.item.modifierGroups.isNotEmpty) ...[
+                    ...restaurantProvider.getModifierGroupsForItem(widget.item.modifierGroups).map((group) {
+                      final modifiers = restaurantProvider.getModifiersForGroup(group);
+                      if (modifiers.isEmpty) return const SizedBox.shrink();
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                group.getLocalizedName(locale),
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              if (group.minimum > 0)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Required',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.red.shade700,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            group.type == 'SINGLE'
+                                ? 'Choose one'
+                                : 'Choose up to ${group.maximum}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...modifiers.map((modifier) {
+                            final isSelected = _isModifierSelected(group.id, modifier.id);
+                            return InkWell(
+                              onTap: () => _toggleModifier(group, modifier.id),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.grey[300]!,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
+                                      : Colors.transparent,
+                                ),
+                                child: Row(
+                                  children: [
+                                    if (group.type == 'SINGLE')
+                                      Icon(
+                                        isSelected
+                                            ? Icons.radio_button_checked
+                                            : Icons.radio_button_unchecked,
+                                        color: isSelected
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Colors.grey[400],
+                                      )
+                                    else
+                                      Icon(
+                                        isSelected
+                                            ? Icons.check_box
+                                            : Icons.check_box_outline_blank,
+                                        color: isSelected
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Colors.grey[400],
+                                      ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        modifier.getLocalizedName(locale),
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                            ),
+                                      ),
+                                    ),
+                                    if (modifier.price > 0)
+                                      Text(
+                                        '+ ${CurrencyUtils.formatCurrency(modifier.price)}',
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    }),
+                  ],
                   // Quantity selector
                   Row(
                     children: [
@@ -1020,7 +1201,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                               ),
                         ),
                         Text(
-                          CurrencyUtils.formatCurrency(widget.item.price * _quantity),
+                          CurrencyUtils.formatCurrency((widget.item.price + _calculateModifiersPrice()) * _quantity),
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
