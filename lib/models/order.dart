@@ -32,8 +32,8 @@ class Order {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Order(
       id: doc.id,
-      sessionId: data['sessionId'] ?? '',
-      groupId: data['groupId'] ?? '',
+      sessionId: data['sessionId'], // Keep null if not present
+      groupId: data['groupId'], // Keep null if not present - important for queries!
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? '',
       itemName: data['itemName'] ?? '',
@@ -48,14 +48,14 @@ class Order {
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
-      'sessionId': sessionId,
-      'groupId': groupId,
+      if (sessionId != null) 'sessionId': sessionId,
+      if (groupId != null) 'groupId': groupId,
       'userId': userId,
       'userName': userName,
       'itemName': itemName,
       'price': price,
       'quantity': quantity,
-      'imageUrl': imageUrl,
+      if (imageUrl != null) 'imageUrl': imageUrl,
       if (notes != null && notes!.isNotEmpty) 'notes': notes,
       'createdAt': Timestamp.fromDate(createdAt),
     };

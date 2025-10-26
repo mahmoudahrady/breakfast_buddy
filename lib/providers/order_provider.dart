@@ -150,6 +150,57 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+  // Reorder - Creates a new order based on a previous order
+  Future<bool> reorder({
+    required Order previousOrder,
+    required String userId,
+    required String userName,
+    String? groupId,
+  }) async {
+    AppLogger.info('Reordering: ${previousOrder.itemName}');
+
+    return await createOrder(
+      userId: userId,
+      userName: userName,
+      itemName: previousOrder.itemName,
+      price: previousOrder.price,
+      quantity: previousOrder.quantity,
+      imageUrl: previousOrder.imageUrl,
+      groupId: groupId ?? previousOrder.groupId,
+      notes: previousOrder.notes,
+    );
+  }
+
+  // Bulk reorder - Reorders multiple items at once
+  Future<bool> bulkReorder({
+    required List<Order> previousOrders,
+    required String userId,
+    required String userName,
+    String? groupId,
+  }) async {
+    AppLogger.info('Bulk reordering ${previousOrders.length} items');
+
+    bool allSucceeded = true;
+    for (final order in previousOrders) {
+      final success = await createOrder(
+        userId: userId,
+        userName: userName,
+        itemName: order.itemName,
+        price: order.price,
+        quantity: order.quantity,
+        imageUrl: order.imageUrl,
+        groupId: groupId ?? order.groupId,
+        notes: order.notes,
+      );
+
+      if (!success) {
+        allSucceeded = false;
+      }
+    }
+
+    return allSucceeded;
+  }
+
   // Delete order
   // Simple delete order method (for group-based orders without sessions)
   Future<bool> deleteOrder(String orderId) async {

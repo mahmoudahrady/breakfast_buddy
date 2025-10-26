@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/group_provider.dart';
+import '../../providers/order_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/order.dart' as OrderModel;
 import '../../widgets/currency_display.dart';
+import '../../widgets/quick_order_card.dart';
 import '../groups/group_list_screen.dart';
 import '../groups/group_details_screen.dart';
 import '../profile/profile_screen.dart';
@@ -301,6 +303,79 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 32),
 
+              // Quick Order Section
+              if (groupProvider.userGroups.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.flash_on,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Quick Order',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Show active groups for quick ordering
+                ...groupProvider.userGroups
+                    .where((group) => group.isActive)
+                    .take(2)
+                    .map((group) {
+                  // Find first restaurant name for this group if available
+                  String? restaurantName;
+                  if (groupProvider.selectedGroup?.id == group.id &&
+                      groupProvider.restaurants.isNotEmpty) {
+                    restaurantName = groupProvider.restaurants.first.restaurantName;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: QuickOrderCard(
+                      group: group,
+                      restaurantName: restaurantName,
+                      orderCount: 0,
+                    ),
+                  );
+                }).toList(),
+                if (groupProvider.userGroups.where((g) => g.isActive).isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'No active groups. Activate a group to start ordering!',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+              ],
+
               // Today's Active Orders (if any)
               if (_todayOrders != null && _todayOrders!.isNotEmpty) ...[
                 Row(
@@ -383,6 +458,47 @@ class _HomeScreenState extends State<HomeScreen> {
                                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                                     ),
                                     iconSize: 12,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Reorder button
+                                  InkWell(
+                                    onTap: () async {
+                                      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+                                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+                                      if (authProvider.user != null) {
+                                        final success = await orderProvider.reorder(
+                                          previousOrder: order,
+                                          userId: authProvider.user!.id,
+                                          userName: authProvider.user!.name,
+                                          groupId: order.groupId,
+                                        );
+
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(success
+                                                ? 'Added ${order.itemName} to cart!'
+                                                : 'Failed to reorder'),
+                                              duration: const Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.refresh,
+                                        size: 16,
+                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),

@@ -267,6 +267,169 @@ class OrderConfirmationScreen extends StatelessWidget {
                 ),
               ),
 
+              // Payment Split Section
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Card(
+                  color: Theme.of(context).colorScheme.tertiaryContainer,
+                  child: ExpansionTile(
+                    leading: Icon(
+                      Icons.payments_outlined,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    title: Text(
+                      'Who Pays What',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'View payment split by member',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onTertiaryContainer.withOpacity(0.7),
+                      ),
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          children: [
+                            ...memberOrders.entries.map((entry) {
+                              final userId = entry.key;
+                              final orders = entry.value;
+                              final member = groupProvider.members.firstWhere(
+                                (m) => m.userId == userId,
+                              );
+                              final memberTotal = orders.fold<double>(
+                                0.0,
+                                (sum, order) => sum + (order.price * order.quantity),
+                              );
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.grey.withOpacity(0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Member Avatar
+                                    member.userPhotoUrl != null
+                                        ? CircleAvatar(
+                                            radius: 20,
+                                            backgroundImage: NetworkImage(member.userPhotoUrl!),
+                                          )
+                                        : CircleAvatar(
+                                            radius: 20,
+                                            child: Text(member.userName[0].toUpperCase()),
+                                          ),
+                                    const SizedBox(width: 12),
+                                    // Member Name
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            member.userName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${orders.length} ${orders.length == 1 ? 'item' : 'items'}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Amount
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: CurrencyDisplay(
+                                        amount: memberTotal,
+                                        textStyle: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                        iconColor: Theme.of(context).colorScheme.primary,
+                                        iconSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            const SizedBox(height: 8),
+                            // Total
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calculate,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Total Due',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  CurrencyDisplay(
+                                    amount: totalAmount,
+                                    textStyle: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                    iconColor: Theme.of(context).colorScheme.primary,
+                                    iconSize: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               // Confirm Button
               Container(
                 padding: const EdgeInsets.all(16),

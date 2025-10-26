@@ -13,6 +13,8 @@ import '../../utils/currency_utils.dart';
 import '../../utils/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../widgets/order_deadline_banner.dart';
+import '../../widgets/cart_preview_widget.dart';
+import '../orders/order_confirmation_screen.dart';
 
 // Menu screen with tabs for categories
 class MenuScreen extends StatefulWidget {
@@ -179,65 +181,90 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
               }).toList(),
             ),
           ),
-          body: Column(
+          body: Stack(
             children: [
-              // Quick Reorder Section
-              if (_recentOrders != null && _recentOrders!.isNotEmpty)
-                _buildQuickReorderSection(context, isGroupActive),
-              // Deadline Banner
-              if (groupProvider.selectedGroup?.orderDeadline != null &&
-                  groupProvider.selectedGroup!.isActive &&
-                  !groupProvider.selectedGroup!.isDeadlinePassed)
-                OrderDeadlineBanner(
-                  deadline: groupProvider.selectedGroup!.orderDeadline!,
-                ),
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.toLowerCase();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search menu items...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Column(
+                children: [
+                  // Quick Reorder Section
+                  if (_recentOrders != null && _recentOrders!.isNotEmpty)
+                    _buildQuickReorderSection(context, isGroupActive),
+                  // Deadline Banner
+                  if (groupProvider.selectedGroup?.orderDeadline != null &&
+                      groupProvider.selectedGroup!.isActive &&
+                      !groupProvider.selectedGroup!.isDeadlinePassed)
+                    OrderDeadlineBanner(
+                      deadline: groupProvider.selectedGroup!.orderDeadline!,
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                  ),
-                ),
-              ),
-              // Menu Categories
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: categories.map((category) {
-                    return RefreshIndicator(
-                      onRefresh: () => restaurantProvider.refreshMenu(),
-                      child: _CategoryTabContent(
-                        category: category,
-                        groupId: widget.groupId,
-                        isGroupActive: isGroupActive,
-                        searchQuery: _searchQuery,
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search menu items...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface,
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
+                  // Menu Categories
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: categories.map((category) {
+                        return RefreshIndicator(
+                          onRefresh: () => restaurantProvider.refreshMenu(),
+                          child: _CategoryTabContent(
+                            category: category,
+                            groupId: widget.groupId,
+                            isGroupActive: isGroupActive,
+                            searchQuery: _searchQuery,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+              // Cart Preview at bottom
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: CartPreviewWidget(
+                  groupId: widget.groupId, // Filter cart by current group
+                  onViewCart: () {
+                    if (widget.groupId != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrderConfirmationScreen(
+                            groupId: widget.groupId!,
+                          ),
+                        ),
+                      );
+                    }
+                  },
                 ),
               ),
             ],

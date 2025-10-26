@@ -60,17 +60,19 @@ class MyApp extends StatelessWidget {
 
   ThemeData _buildLightTheme() {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFFFF6B35), // Modern vibrant orange
+      seedColor: const Color(0xFFD97706), // Warm amber/honey - breakfast inspired
       brightness: Brightness.light,
-      primary: const Color(0xFFFF6B35),
-      secondary: const Color(0xFF4ECDC4),
-      tertiary: const Color(0xFF95E1D3),
+      primary: const Color(0xFFD97706), // Warm amber
+      secondary: const Color(0xFF92400E), // Rich coffee brown
+      tertiary: const Color(0xFFFEF3C7), // Warm cream/butter
+      surface: Colors.white,
+      error: const Color(0xFFDC2626), // Warm red
     );
 
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+      scaffoldBackgroundColor: const Color(0xFFFEF7ED), // Warm cream background
 
       // Modern AppBar
       appBarTheme: AppBarTheme(
@@ -105,7 +107,7 @@ class MyApp extends StatelessWidget {
       // Enhanced Input Fields
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: const Color(0xFFFFFBEB), // Light warm cream
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.grey[200]!),
@@ -172,7 +174,7 @@ class MyApp extends StatelessWidget {
 
       // Modern Chip Theme
       chipTheme: ChipThemeData(
-        backgroundColor: Colors.grey[100],
+        backgroundColor: const Color(0xFFFEF3C7), // Warm cream
         selectedColor: colorScheme.primary.withOpacity(0.15),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -264,24 +266,26 @@ class MyApp extends StatelessWidget {
 
   ThemeData _buildDarkTheme() {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFFFF6B35),
+      seedColor: const Color(0xFFF59E0B),
       brightness: Brightness.dark,
-      primary: const Color(0xFFFF8F6B),
-      secondary: const Color(0xFF4ECDC4),
-      tertiary: const Color(0xFF95E1D3),
+      primary: const Color(0xFFF59E0B), // Lighter amber for visibility
+      secondary: const Color(0xFFA16207), // Lighter coffee brown
+      tertiary: const Color(0xFFFEF3C7), // Warm cream
+      surface: const Color(0xFF292524), // Warm dark surface
+      error: const Color(0xFFF87171), // Lighter warm red for dark mode
     );
 
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFF121212),
+      scaffoldBackgroundColor: const Color(0xFF1C1917), // Warm dark background
 
       // Modern Dark AppBar
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: const Color(0xFF292524), // Warm dark surface
         foregroundColor: Colors.white,
         titleTextStyle: const TextStyle(
           fontSize: 24,
@@ -294,7 +298,7 @@ class MyApp extends StatelessWidget {
       // Modern Dark Cards
       cardTheme: CardThemeData(
         elevation: 0,
-        color: const Color(0xFF1E1E1E),
+        color: const Color(0xFF292524), // Warm dark surface
         shadowColor: Colors.black.withOpacity(0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -309,7 +313,7 @@ class MyApp extends StatelessWidget {
       // Enhanced Dark Input Fields
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF2C2C2C),
+        fillColor: const Color(0xFF3C3735), // Warm dark input background
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.grey[800]!),
@@ -373,7 +377,7 @@ class MyApp extends StatelessWidget {
       ),
 
       chipTheme: ChipThemeData(
-        backgroundColor: const Color(0xFF2C2C2C),
+        backgroundColor: const Color(0xFF3C3735), // Warm dark chip
         selectedColor: colorScheme.primary.withOpacity(0.2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -386,7 +390,7 @@ class MyApp extends StatelessWidget {
       ),
 
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: Color(0xFF292524), // Warm dark surface
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -394,7 +398,7 @@ class MyApp extends StatelessWidget {
       ),
 
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: const Color(0xFF292524), // Warm dark surface
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
