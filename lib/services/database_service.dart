@@ -3,10 +3,49 @@ import '../models/app_user.dart';
 import '../models/order.dart' as OrderModel;
 import '../models/order_session.dart';
 import '../models/payment.dart';
-import '../models/favorite_item.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // ==================== USER PROFILE ====================
+
+  // Update user profile
+  Future<void> updateUserProfile({
+    required String userId,
+    String? name,
+    String? photoUrl,
+  }) async {
+    try {
+      final Map<String, dynamic> updates = {};
+
+      if (name != null) {
+        updates['name'] = name;
+      }
+
+      if (photoUrl != null) {
+        updates['photoUrl'] = photoUrl;
+      }
+
+      if (updates.isNotEmpty) {
+        await _firestore.collection('users').doc(userId).update(updates);
+      }
+    } catch (e) {
+      throw 'Failed to update profile. Please try again.';
+    }
+  }
+
+  // Get user by ID
+  Future<AppUser?> getUserById(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return AppUser.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   // ==================== ORDER SESSIONS ====================
 
@@ -520,97 +559,6 @@ class DatabaseService {
       return uniqueOrders.values.toList();
     } catch (e) {
       return [];
-    }
-  }
-
-  // ==================== FAVORITES ====================
-
-  // Add item to favorites
-  Future<String> addFavorite({
-    required String userId,
-    required String groupId,
-    required String itemName,
-    String? itemDescription,
-    required double price,
-    String? imageUrl,
-    String? notes,
-  }) async {
-    try {
-      // Check if already favorited
-      final existing = await _firestore
-          .collection('favorites')
-          .where('userId', isEqualTo: userId)
-          .where('groupId', isEqualTo: groupId)
-          .where('itemName', isEqualTo: itemName)
-          .limit(1)
-          .get();
-
-      if (existing.docs.isNotEmpty) {
-        return existing.docs.first.id; // Already exists
-      }
-
-      final favorite = FavoriteItem(
-        id: '',
-        userId: userId,
-        groupId: groupId,
-        itemName: itemName,
-        itemDescription: itemDescription,
-        price: price,
-        imageUrl: imageUrl,
-        notes: notes,
-        createdAt: DateTime.now(),
-      );
-
-      final docRef = await _firestore.collection('favorites').add(favorite.toFirestore());
-      return docRef.id;
-    } catch (e) {
-      throw 'Failed to add favorite. Please try again.';
-    }
-  }
-
-  // Remove item from favorites
-  Future<void> removeFavorite(String favoriteId) async {
-    try {
-      await _firestore.collection('favorites').doc(favoriteId).delete();
-    } catch (e) {
-      throw 'Failed to remove favorite. Please try again.';
-    }
-  }
-
-  // Get user's favorites for a specific group
-  Stream<List<FavoriteItem>> getUserFavorites(String userId, String groupId) {
-    return _firestore
-        .collection('favorites')
-        .where('userId', isEqualTo: userId)
-        .where('groupId', isEqualTo: groupId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => FavoriteItem.fromFirestore(doc)).toList();
-    });
-  }
-
-  // Check if item is favorited
-  Future<String?> getFavoriteId({
-    required String userId,
-    required String groupId,
-    required String itemName,
-  }) async {
-    try {
-      final query = await _firestore
-          .collection('favorites')
-          .where('userId', isEqualTo: userId)
-          .where('groupId', isEqualTo: groupId)
-          .where('itemName', isEqualTo: itemName)
-          .limit(1)
-          .get();
-
-      if (query.docs.isNotEmpty) {
-        return query.docs.first.id;
-      }
-      return null;
-    } catch (e) {
-      return null;
     }
   }
 }

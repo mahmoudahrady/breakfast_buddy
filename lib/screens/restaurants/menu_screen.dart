@@ -588,93 +588,9 @@ class _MenuItemCard extends StatefulWidget {
 }
 
 class _MenuItemCardState extends State<_MenuItemCard> {
-  String? _favoriteId;
-  bool _isLoadingFavorite = true;
-
   @override
   void initState() {
     super.initState();
-    _checkIfFavorited();
-  }
-
-  Future<void> _checkIfFavorited() async {
-    if (widget.groupId == null) {
-      setState(() => _isLoadingFavorite = false);
-      return;
-    }
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) {
-      setState(() => _isLoadingFavorite = false);
-      return;
-    }
-
-    final databaseService = DatabaseService();
-    const locale = 'ar';
-    final favoriteId = await databaseService.getFavoriteId(
-      userId: authProvider.user!.id,
-      groupId: widget.groupId!,
-      itemName: widget.item.getLocalizedName(locale),
-    );
-
-    if (mounted) {
-      setState(() {
-        _favoriteId = favoriteId;
-        _isLoadingFavorite = false;
-      });
-    }
-  }
-
-  Future<void> _toggleFavorite() async {
-    if (widget.groupId == null) return;
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.user == null) return;
-
-    final databaseService = DatabaseService();
-    const locale = 'ar';
-
-    try {
-      if (_favoriteId != null) {
-        // Remove from favorites
-        await databaseService.removeFavorite(_favoriteId!);
-        if (mounted) {
-          setState(() => _favoriteId = null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Removed from favorites'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
-      } else {
-        // Add to favorites
-        final favoriteId = await databaseService.addFavorite(
-          userId: authProvider.user!.id,
-          groupId: widget.groupId!,
-          itemName: widget.item.getLocalizedName(locale),
-          itemDescription: widget.item.getLocalizedDescription(locale),
-          price: widget.item.price,
-          imageUrl: widget.item.imageUri,
-        );
-        if (mounted) {
-          setState(() => _favoriteId = favoriteId);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Added to favorites'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
-      }
-    }
   }
 
   @override
@@ -750,28 +666,6 @@ class _MenuItemCardState extends State<_MenuItemCard> {
                   ],
                 ),
               ),
-              // Favorite button
-              if (widget.groupId != null)
-                _isLoadingFavorite
-                    ? const SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: Center(
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      )
-                    : IconButton(
-                        icon: Icon(
-                          _favoriteId != null ? Icons.favorite : Icons.favorite_border,
-                          color: _favoriteId != null ? Colors.red : Colors.grey,
-                        ),
-                        onPressed: _toggleFavorite,
-                        tooltip: _favoriteId != null ? 'Remove from favorites' : 'Add to favorites',
-                      ),
             ],
           ),
         ),
@@ -1062,7 +956,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'Required',
+                                    'مطلوب',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: Colors.red.shade700,
@@ -1075,8 +969,8 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                           const SizedBox(height: 4),
                           Text(
                             group.type == 'SINGLE'
-                                ? 'Choose one'
-                                : 'Choose up to ${group.maximum}',
+                                ? 'اختر واحد'
+                                : 'اختر حتى ${group.maximum}',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: Colors.grey[600],
                                 ),
@@ -1152,7 +1046,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                   Row(
                     children: [
                       Text(
-                        'Quantity',
+                        'الكمية',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -1195,7 +1089,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total',
+                          'الإجمالي',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1213,7 +1107,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                   const SizedBox(height: 24),
                   // Special instructions
                   Text(
-                    'Special Instructions',
+                    'ملاحظات خاصة',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -1224,7 +1118,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                     maxLines: 3,
                     maxLength: 200,
                     decoration: InputDecoration(
-                      hintText: 'E.g., No onions, Extra spicy...',
+                      hintText: 'مثال: بدون بصل، حار جداً...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1237,7 +1131,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                   // Allergens section
                   if (widget.item.allergens.isNotEmpty) ...[
                     Text(
-                      'Allergens',
+                      'مسببات الحساسية',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -1300,7 +1194,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
                             ),
                           )
                         : const Text(
-                            'Add to Order',
+                            'إضافة إلى الطلب',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

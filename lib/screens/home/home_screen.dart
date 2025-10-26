@@ -8,6 +8,7 @@ import '../../models/order.dart' as OrderModel;
 import '../../widgets/currency_display.dart';
 import '../groups/group_list_screen.dart';
 import '../groups/group_details_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -116,6 +117,14 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'Settings',
               onSelected: (value) async {
                 switch (value) {
+                  case 'profile':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreen(),
+                      ),
+                    );
+                    break;
                   case 'theme':
                     themeProvider.toggleTheme();
                     break;
@@ -148,6 +157,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem<String>(
+                  value: 'profile',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.person_rounded,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Text('الملف الشخصي'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
                 PopupMenuItem<String>(
                   value: 'theme',
                   child: Row(

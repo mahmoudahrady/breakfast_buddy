@@ -22,7 +22,6 @@ import 'group_invitation_dialog.dart';
 import '../orders/order_confirmation_screen.dart';
 import '../payments/split_calculator_screen.dart';
 import 'group_insights_screen.dart';
-import '../favorites/favorites_screen.dart';
 import 'group_settings_screen.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
@@ -950,29 +949,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ),
         ),
 
-        // Favorites Button
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FavoritesScreen(groupId: widget.groupId),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.favorite),
-              label: const Text('View My Favorites'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-        ),
-
         // Orders list
         Expanded(
           child: ListView.builder(
@@ -991,7 +967,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildMyOrderCard(Order order, Group? group) {
-    final canDelete = group?.isActive ?? false;
+    // Users can always delete their own orders
+    final canDelete = true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1166,7 +1143,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   itemBuilder: (context, index) {
                     final member = groupProvider.members[index];
                     final orders = memberOrders[member.userId] ?? [];
-                    return _buildMemberOrdersCard(member, orders, authProvider);
+                    return _buildMemberOrdersCard(member, orders, authProvider, isAdmin);
                   },
                 )
               : Center(
@@ -1288,7 +1265,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildMemberOrdersCard(
-      GroupMember member, List<Order> orders, AuthProvider authProvider) {
+      GroupMember member, List<Order> orders, AuthProvider authProvider, bool isAdmin) {
     final isCurrentUser = authProvider.user?.id == member.userId;
     final memberTotal = orders.fold<double>(
       0.0,
@@ -1370,11 +1347,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                       ),
                     ],
                   ),
-                  trailing: CurrencyDisplay(
-                    amount: order.price * order.quantity,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                    iconSize: 14,
-                  ),
+                  trailing: isAdmin
+                      ? IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          onPressed: () => _confirmDeleteOrder(order),
+                        )
+                      : CurrencyDisplay(
+                          amount: order.price * order.quantity,
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          iconSize: 14,
+                        ),
                 );
               }).toList(),
       ),

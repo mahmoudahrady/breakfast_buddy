@@ -15,6 +15,12 @@ service cloud.firestore {
       allow update: if request.auth != null &&
         (resource.data.createdBy == request.auth.uid ||
          request.auth.uid in resource.data.participants);
+      // Allow users to delete their own orders, or group admins to delete any order in their group
+      allow delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.groupId != null &&
+         get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data.adminId == request.auth.uid)
+      );
     }
 
     // Groups collection - members can read, admin can update/delete

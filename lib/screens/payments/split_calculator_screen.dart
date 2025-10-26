@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -22,10 +23,12 @@ class _SplitCalculatorScreenState extends State<SplitCalculatorScreen> {
   double _tipPercentage = 0;
   double _additionalFees = 0;
   final TextEditingController _feesController = TextEditingController();
+  Timer? _debounceTimer;
 
   @override
   void dispose() {
     _feesController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -343,8 +346,14 @@ class _SplitCalculatorScreenState extends State<SplitCalculatorScreen> {
                     helperMaxLines: 2,
                   ),
                   onChanged: (value) {
-                    setState(() {
-                      _additionalFees = double.tryParse(value) ?? 0;
+                    // Cancel previous timer
+                    _debounceTimer?.cancel();
+
+                    // Start new timer - wait 1 second after user stops typing
+                    _debounceTimer = Timer(const Duration(seconds: 1), () {
+                      setState(() {
+                        _additionalFees = double.tryParse(value) ?? 0;
+                      });
                     });
                   },
                 ),

@@ -128,6 +128,16 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Refresh user data
+  Future<void> refreshUser() async {
+    try {
+      _user = await _authService.getCurrentUserData();
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+  }
+
   // Send password reset email
   Future<bool> sendPasswordResetEmail(String email) async {
     _setLoading(true);
