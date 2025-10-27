@@ -3,21 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/restaurant_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/group.dart';
 import '../../models/group_member.dart';
-import '../../models/group_restaurant.dart';
-import '../../models/restaurant.dart';
 import '../../models/order.dart';
 import '../../models/payment.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/currency_display.dart';
 import '../../widgets/order_deadline_banner.dart';
-import 'add_restaurant_to_group_screen.dart';
-import '../restaurants/menu_screen.dart';
 import 'group_invitation_dialog.dart';
 import '../orders/order_confirmation_screen.dart';
 import '../payments/split_calculator_screen.dart';
@@ -40,7 +35,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     // Defer the call to avoid calling setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadGroupDetails();
@@ -231,93 +226,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
       }
     }
   }
-
-  void _navigateToAddRestaurant() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            AddRestaurantToGroupScreen(groupId: widget.groupId),
-      ),
-    );
-
-    if (result != null && mounted) {
-      // Refresh the group details to update the restaurant list
-      _loadGroupDetails();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Restaurant added successfully!')),
-      );
-    }
-  }
-
-  void _navigateToRestaurantMenu(GroupRestaurant restaurant) async {
-    // Check if the restaurant has an API URL
-    if (restaurant.restaurantApiUrl == null || restaurant.restaurantApiUrl!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Restaurant menu not available'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
-    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    try {
-      // Create a Restaurant object from the GroupRestaurant data
-      final restaurantObj = Restaurant(
-        id: restaurant.restaurantId,
-        name: restaurant.restaurantName,
-        apiUrl: restaurant.restaurantApiUrl!,
-        imageUrl: restaurant.restaurantImageUrl,
-        description: restaurant.restaurantDescription,
-      );
-
-      // Select the restaurant in the provider
-      await restaurantProvider.selectRestaurant(restaurantObj);
-
-      // Close loading dialog
-      if (mounted) {
-        Navigator.pop(context);
-      }
-
-      // Navigate to the menu screen
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MenuScreen(
-              groupId: widget.groupId,
-              isGroupActive: groupProvider.selectedGroup?.isActive ?? true,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      // Close loading dialog
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load menu: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
 
   Future<void> _leaveGroup() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -638,7 +546,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Restaurants', icon: Icon(Icons.restaurant)),
             Tab(text: 'My Orders', icon: Icon(Icons.shopping_bag)),
             Tab(text: 'Orders', icon: Icon(Icons.receipt_long)),
             Tab(text: 'Payments', icon: Icon(Icons.payment)),
@@ -684,7 +591,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildRestaurantsTab(groupProvider, isAdmin, group),
                 _buildMyOrdersTab(groupProvider, isAdmin, group),
                 _buildOrdersTab(groupProvider, isAdmin, group),
                 _buildPaymentsTab(groupProvider, isAdmin, group),
@@ -693,159 +599,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ),
         ],
       ),
-      floatingActionButton: isAdmin && groupProvider.restaurants.isEmpty
-          ? FloatingActionButton.extended(
-              onPressed: _navigateToAddRestaurant,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Restaurant'),
-            )
-          : null,
     );
-  }
-
-  Widget _buildRestaurantsTab(
-      GroupProvider groupProvider, bool isAdmin, group) {
-    if (groupProvider.restaurants.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.restaurant_menu, size: 80, color: Colors.grey.shade400),
-              const SizedBox(height: 16),
-              Text(
-                'No Restaurants Yet',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Add restaurants to start ordering',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              if (isAdmin) ...[
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _navigateToAddRestaurant,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Restaurant'),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: groupProvider.restaurants.length,
-      itemBuilder: (context, index) {
-        final restaurant = groupProvider.restaurants[index];
-        return _buildRestaurantCard(restaurant, isAdmin);
-      },
-    );
-  }
-
-  Widget _buildRestaurantCard(GroupRestaurant restaurant, bool isAdmin) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        onTap: () => _navigateToRestaurantMenu(restaurant),
-        leading: restaurant.restaurantImageUrl != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  restaurant.restaurantImageUrl!,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.restaurant),
-                ),
-              )
-            : const CircleAvatar(
-                child: Icon(Icons.restaurant),
-              ),
-        title: Text(
-          restaurant.restaurantName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (restaurant.restaurantDescription != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                restaurant.restaurantDescription!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            const SizedBox(height: 4),
-            Text(
-              'Added by ${restaurant.addedByName}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Tap to view menu and order',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        trailing: isAdmin
-            ? IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => _confirmDeleteRestaurant(restaurant),
-              )
-            : const Icon(Icons.arrow_forward_ios, size: 16),
-        isThreeLine: true,
-      ),
-    );
-  }
-
-  Future<void> _confirmDeleteRestaurant(GroupRestaurant restaurant) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Restaurant'),
-        content: Text(
-            'Are you sure you want to remove ${restaurant.restaurantName}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-      final success = await groupProvider.removeRestaurant(restaurant.id);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success
-                ? 'Restaurant removed'
-                : groupProvider.errorMessage ?? 'Failed to remove restaurant'),
-            backgroundColor: success ? null : Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   Widget _buildMyOrdersTab(GroupProvider groupProvider, bool isAdmin, Group? group) {
