@@ -170,7 +170,7 @@ class DatabaseService {
         userId: userId,
         userName: userName,
         itemName: itemName,
-        price: price,
+        basePrice: price,
         quantity: quantity,
         imageUrl: imageUrl,
         notes: notes,
@@ -230,6 +230,70 @@ class DatabaseService {
       orders.sort((a, b) => a.createdAt.compareTo(b.createdAt));
       return orders;
     });
+  }
+
+  // Get ALL orders for a specific user (across all groups and sessions)
+  Stream<List<OrderModel.Order>> getOrdersForUser(String userId) {
+    return _firestore
+        .collection('orders')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final orders = snapshot.docs.map((doc) => OrderModel.Order.fromFirestore(doc)).toList();
+      // Sort by date descending (newest first)
+      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return orders;
+    });
+  }
+
+  // Update order
+  Future<void> updateOrder(OrderModel.Order order) async {
+    try {
+      await _firestore.collection('orders').doc(order.id).update(order.toFirestore());
+    } catch (e) {
+      throw 'Failed to update order. Please try again.';
+    }
+  }
+
+  // Update order status
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String status,
+    required String updatedBy,
+  }) async {
+    try {
+      await _firestore.collection('orders').doc(orderId).update({
+        'status': status,
+        'statusUpdatedAt': FieldValue.serverTimestamp(),
+        'statusUpdatedBy': updatedBy,
+      });
+    } catch (e) {
+      throw 'Failed to update order status. Please try again.';
+    }
+  }
+
+  // Bulk update order status for multiple orders
+  Future<void> updateMultipleOrdersStatus({
+    required List<String> orderIds,
+    required String status,
+    required String updatedBy,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (final orderId in orderIds) {
+        final docRef = _firestore.collection('orders').doc(orderId);
+        batch.update(docRef, {
+          'status': status,
+          'statusUpdatedAt': FieldValue.serverTimestamp(),
+          'statusUpdatedBy': updatedBy,
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw 'Failed to update order statuses. Please try again.';
+    }
   }
 
   // Delete order
@@ -476,7 +540,7 @@ class DatabaseService {
 
       double totalSpent = 0;
       for (var order in orders) {
-        totalSpent += order.price * order.quantity;
+        totalSpent += order.totalPrice;
       }
 
       return {

@@ -5,7 +5,6 @@ import '../../providers/group_provider.dart';
 import '../../providers/restaurant_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../models/group_restaurant.dart';
 import '../../models/restaurant.dart';
 import '../../models/menu_category.dart';
@@ -90,85 +89,59 @@ class _GroupMenuScreenState extends State<GroupMenuScreen> {
             : null,
         actions: [
           // Settings Menu (Three Dots)
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, _) {
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'Settings',
+            onSelected: (value) async {
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              return PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded),
-                tooltip: 'Settings',
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'theme':
-                      themeProvider.toggleTheme();
-                      break;
-                    case 'logout':
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Logout'),
-                          content: const Text('Are you sure you want to logout?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Logout'),
-                            ),
-                          ],
+              switch (value) {
+                case 'logout':
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Logout'),
+                      content: const Text('Are you sure you want to logout?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
                         ),
-                      );
-                      if (confirmed == true && context.mounted) {
-                        await authProvider.signOut();
-                      }
-                      break;
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true && context.mounted) {
+                    await authProvider.signOut();
                   }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem<String>(
-                    value: 'theme',
-                    child: Row(
-                      children: [
-                        Icon(
-                          themeProvider.isDarkMode
-                              ? Icons.light_mode_rounded
-                              : Icons.dark_mode_rounded,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          themeProvider.isDarkMode
-                              ? 'Light Mode'
-                              : 'Dark Mode',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.logout_rounded,
-                          size: 20,
-                          color: Colors.red,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Logout',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
+                  break;
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      size: 20,
+                      color: Colors.red,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -275,7 +248,10 @@ class _GroupMenuScreenState extends State<GroupMenuScreen> {
 
     // If restaurant has a menu from API
     if (restaurantProvider.categories.isNotEmpty) {
-      return _MenuWithTabs(groupRestaurant: _selectedGroupRestaurant!);
+      return _MenuWithTabs(
+        groupRestaurant: _selectedGroupRestaurant!,
+        groupId: widget.groupId,
+      );
     }
 
     // Otherwise show custom item view
@@ -372,6 +348,7 @@ class _GroupMenuScreenState extends State<GroupMenuScreen> {
       itemName: itemName,
       price: price,
       imageUrl: imageUrl,
+      groupId: widget.groupId, // CRITICAL: Link order to group
     );
 
     if (mounted) {
@@ -395,8 +372,12 @@ class _GroupMenuScreenState extends State<GroupMenuScreen> {
 // Menu with category tabs
 class _MenuWithTabs extends StatefulWidget {
   final GroupRestaurant groupRestaurant;
+  final String groupId;
 
-  const _MenuWithTabs({required this.groupRestaurant});
+  const _MenuWithTabs({
+    required this.groupRestaurant,
+    required this.groupId,
+  });
 
   @override
   State<_MenuWithTabs> createState() => _MenuWithTabsState();
@@ -457,7 +438,10 @@ class _MenuWithTabsState extends State<_MenuWithTabs>
               child: TabBarView(
                 controller: _tabController,
                 children: categories.map((category) {
-                  return _CategoryTabContent(category: category);
+                  return _CategoryTabContent(
+                    category: category,
+                    groupId: widget.groupId,
+                  );
                 }).toList(),
               ),
             ),
@@ -470,8 +454,12 @@ class _MenuWithTabsState extends State<_MenuWithTabs>
 
 class _CategoryTabContent extends StatelessWidget {
   final MenuCategory category;
+  final String groupId;
 
-  const _CategoryTabContent({required this.category});
+  const _CategoryTabContent({
+    required this.category,
+    required this.groupId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -523,7 +511,10 @@ class _CategoryTabContent extends StatelessWidget {
             ),
           ),
         // Category items
-        ...category.items.map((item) => _MenuItemCard(item: item)),
+        ...category.items.map((item) => _MenuItemCard(
+          item: item,
+          groupId: groupId,
+        )),
       ],
     );
   }
@@ -531,8 +522,12 @@ class _CategoryTabContent extends StatelessWidget {
 
 class _MenuItemCard extends StatefulWidget {
   final MenuItem item;
+  final String groupId;
 
-  const _MenuItemCard({required this.item});
+  const _MenuItemCard({
+    required this.item,
+    required this.groupId,
+  });
 
   @override
   State<_MenuItemCard> createState() => _MenuItemCardState();
@@ -624,15 +619,22 @@ class _MenuItemCardState extends State<_MenuItemCard> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ItemDetailsBottomSheet(item: widget.item),
+      builder: (context) => _ItemDetailsBottomSheet(
+        item: widget.item,
+        groupId: widget.groupId,
+      ),
     );
   }
 }
 
 class _ItemDetailsBottomSheet extends StatefulWidget {
   final MenuItem item;
+  final String groupId;
 
-  const _ItemDetailsBottomSheet({required this.item});
+  const _ItemDetailsBottomSheet({
+    required this.item,
+    required this.groupId,
+  });
 
   @override
   State<_ItemDetailsBottomSheet> createState() =>
@@ -681,6 +683,7 @@ class _ItemDetailsBottomSheetState extends State<_ItemDetailsBottomSheet> {
       price: widget.item.price,
       quantity: _quantity,
       imageUrl: widget.item.imageUri,
+      groupId: widget.groupId, // CRITICAL: Link order to group
     );
 
     setState(() {

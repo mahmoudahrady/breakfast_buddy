@@ -339,7 +339,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
                 // Filter by price range
                 orders = orders.where((order) {
-                  final totalPrice = order.price * order.quantity;
+                  final totalPrice = order.totalPrice;
                   return totalPrice >= _minPrice && totalPrice <= _maxPrice;
                 }).toList();
 
@@ -373,7 +373,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                 // Calculate total
                 final total = orders.fold<double>(
                   0.0,
-                  (sum, order) => sum + (order.price * order.quantity),
+                  (sum, order) => sum + order.totalPrice,
                 );
 
                 // Group orders by date
@@ -449,7 +449,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           final dateOrders = groupedOrders[dateKey]!;
                           final dayTotal = dateOrders.fold<double>(
                             0.0,
-                            (sum, order) => sum + (order.price * order.quantity),
+                            (sum, order) => sum + order.totalPrice,
                           );
 
                           return Column(
@@ -522,7 +522,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                         ],
                                       ),
                                       trailing: CurrencyDisplay(
-                                        amount: order.price * order.quantity,
+                                        amount: order.totalPrice,
                                         textStyle: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,

@@ -234,13 +234,15 @@ class GroupService {
     required String addedByName,
   }) async {
     try {
-      // Check if group already has a restaurant
-      final existingRestaurants = await _restaurantsCollection
+      // Check if this specific restaurant already exists for the group
+      final existingRestaurant = await _restaurantsCollection
           .where('groupId', isEqualTo: groupId)
+          .where('restaurantId', isEqualTo: restaurantId)
+          .limit(1)
           .get();
 
-      if (existingRestaurants.docs.isNotEmpty) {
-        throw Exception('This group already has a restaurant. Please remove it first before adding a new one.');
+      if (existingRestaurant.docs.isNotEmpty) {
+        throw Exception('This restaurant has already been added to the group.');
       }
 
       final restaurantData = {
@@ -252,6 +254,7 @@ class GroupService {
         'restaurantDescription': restaurantDescription,
         'addedBy': addedBy,
         'addedByName': addedByName,
+        'isActive': false, // Default to inactive, admin can activate later
         'addedAt': FieldValue.serverTimestamp(),
       };
 
@@ -282,6 +285,59 @@ class GroupService {
         .map((snapshot) => snapshot.docs
             .map((doc) => GroupRestaurant.fromFirestore(doc))
             .toList());
+  }
+
+  // Set active restaurant for a group (only one can be active at a time)
+  Future<void> setActiveRestaurant(String groupId, String restaurantDocId) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Get all restaurants for this group
+      final restaurants = await _restaurantsCollection
+          .where('groupId', isEqualTo: groupId)
+          .get();
+
+      // Deactivate all restaurants
+      for (var doc in restaurants.docs) {
+        batch.update(doc.reference, {'isActive': doc.id == restaurantDocId});
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to set active restaurant: $e');
+    }
+  }
+
+  // Get the currently active restaurant for a group
+  Future<GroupRestaurant?> getActiveRestaurant(String groupId) async {
+    try {
+      final snapshot = await _restaurantsCollection
+          .where('groupId', isEqualTo: groupId)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      return GroupRestaurant.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      throw Exception('Failed to get active restaurant: $e');
+    }
+  }
+
+  // Stream of active restaurant for a group
+  Stream<GroupRestaurant?> watchActiveRestaurant(String groupId) {
+    return _restaurantsCollection
+        .where('groupId', isEqualTo: groupId)
+        .where('isActive', isEqualTo: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isEmpty) return null;
+      return GroupRestaurant.fromFirestore(snapshot.docs.first);
+    });
   }
 
   // Join a group by group ID (for users who receive an invite link)

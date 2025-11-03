@@ -23,7 +23,7 @@ class OrdersSummaryScreen extends StatelessWidget {
         totalsByUser[order.userId] = 0.0;
       }
       ordersByUser[order.userId]!.add(order);
-      totalsByUser[order.userId] = totalsByUser[order.userId]! + (order.price * order.quantity);
+      totalsByUser[order.userId] = totalsByUser[order.userId]! + order.totalPrice;
     }
 
     return Scaffold(
@@ -130,7 +130,7 @@ class OrdersSummaryScreen extends StatelessWidget {
               ),
         ),
         children: orders.map((order) {
-          final totalPrice = order.price * order.quantity;
+          final totalPrice = order.totalPrice;
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 24,
@@ -196,7 +196,7 @@ class OrdersSummaryScreen extends StatelessWidget {
                 ),
                 if (order.quantity > 1)
                   Text(
-                    '${CurrencyUtils.formatCurrency(order.price)} each',
+                    '${CurrencyUtils.formatCurrency(order.basePrice)} each',
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.grey[500],

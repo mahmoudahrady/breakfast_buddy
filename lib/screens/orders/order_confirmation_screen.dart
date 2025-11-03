@@ -88,7 +88,7 @@ class OrderConfirmationScreen extends StatelessWidget {
           // Calculate totals
           final totalAmount = allOrders.fold<double>(
             0.0,
-            (sum, order) => sum + (order.price * order.quantity),
+            (sum, order) => sum + order.totalPrice,
           );
           final totalItems = allOrders.fold<int>(
             0,
@@ -182,7 +182,7 @@ class OrderConfirmationScreen extends StatelessWidget {
 
                     final memberTotal = orders.fold<double>(
                       0.0,
-                      (sum, order) => sum + (order.price * order.quantity),
+                      (sum, order) => sum + order.totalPrice,
                     );
 
                     return Card(
@@ -229,7 +229,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                                     ? Text('Qty: ${order.quantity}')
                                     : null,
                                 trailing: CurrencyDisplay(
-                                  amount: order.price * order.quantity,
+                                  amount: order.totalPrice,
                                   textStyle: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -304,7 +304,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                               );
                               final memberTotal = orders.fold<double>(
                                 0.0,
-                                (sum, order) => sum + (order.price * order.quantity),
+                                (sum, order) => sum + order.totalPrice,
                               );
 
                               return Container(
@@ -574,7 +574,7 @@ class OrderConfirmationScreen extends StatelessWidget {
           if (memberOrders.isNotEmpty) {
             final memberTotal = memberOrders.fold<double>(
               0.0,
-              (sum, order) => sum + (order.price * order.quantity),
+              (sum, order) => sum + order.totalPrice,
             );
 
             await orderProvider.createOrUpdatePayment(

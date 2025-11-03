@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/tropical_theme.dart';
 
 class GroupSettingsScreen extends StatefulWidget {
   final String groupId;
@@ -15,7 +16,6 @@ class GroupSettingsScreen extends StatefulWidget {
 
 class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _descriptionController;
   bool _hasUnsavedChanges = false;
 
   @override
@@ -25,16 +25,13 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
     final group = groupProvider.selectedGroup;
 
     _nameController = TextEditingController(text: group?.name ?? '');
-    _descriptionController = TextEditingController(text: group?.description ?? '');
 
     _nameController.addListener(_markAsChanged);
-    _descriptionController.addListener(_markAsChanged);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -102,7 +99,6 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
       await groupProvider.updateGroup(
         groupId: widget.groupId,
         name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
       );
 
       if (mounted) {
@@ -168,17 +164,27 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: TropicalColors.background,
         appBar: AppBar(
           title: const Text('Group Settings'),
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          backgroundColor: Colors.white,
           actions: [
             if (_hasUnsavedChanges)
-              TextButton.icon(
-                onPressed: _saveSettings,
-                icon: const Icon(Icons.save),
-                label: const Text('Save'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.green,
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: ElevatedButton.icon(
+                  onPressed: _saveSettings,
+                  icon: const Icon(Icons.save_rounded, size: 20),
+                  label: const Text('Save'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TropicalColors.mint,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -189,191 +195,264 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Basic Information Section
-              _buildSectionHeader(context, 'Basic Information', Icons.info),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Group Name',
-                          hintText: 'Enter group name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          prefixIcon: const Icon(Icons.group),
-                        ),
+              _buildSectionHeader(context, 'Basic Information', Icons.info_rounded),
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    width: 1,
+                  ),
+                ),
+                child: TextField(
+                  controller: _nameController,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Group Name',
+                    labelStyle: const TextStyle(
+                      color: TropicalColors.mediumText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    hintText: 'Enter group name',
+                    hintStyle: TextStyle(
+                      color: TropicalColors.mediumText.withValues(alpha: 0.5),
+                    ),
+                    prefixIcon: Container(
+                      padding: const EdgeInsets.all(12),
+                      child: const Icon(
+                        Icons.group_rounded,
+                        color: TropicalColors.orange,
+                        size: 22,
                       ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _descriptionController,
-                        maxLines: 3,
-                        maxLength: 200,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          hintText: 'Enter group description',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          prefixIcon: const Icon(Icons.description),
-                        ),
+                    ),
+                    filled: true,
+                    fillColor: TropicalColors.orange.withValues(alpha: 0.05),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: TropicalColors.orange,
+                        width: 2,
                       ),
-                    ],
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-
               // Group Status Section
-              _buildSectionHeader(context, 'Group Status', Icons.toggle_on),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              _buildSectionHeader(context, 'Group Status', Icons.toggle_on_rounded),
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: group.isActive
+                            ? TropicalColors.mint.withValues(alpha: 0.15)
+                            : TropicalColors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        group.isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+                        color: group.isActive ? TropicalColors.mint : TropicalColors.orange,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Group Active',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  group.isActive
-                                      ? 'Members can place orders'
-                                      : 'Orders are disabled',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
+                          const Text(
+                            'Group Active',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: TropicalColors.darkText,
                             ),
                           ),
-                          Switch(
-                            value: group.isActive,
-                            activeColor: Colors.green,
-                            onChanged: (value) async {
-                              final confirmed = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: Text(value ? 'Activate Group?' : 'Deactivate Group?'),
-                                  content: Text(
-                                    value
-                                        ? 'Members will be able to place orders.'
-                                        : 'Members will not be able to place orders.',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: value ? Colors.green : Colors.orange,
-                                      ),
-                                      child: Text(value ? 'Activate' : 'Deactivate'),
-                                    ),
-                                  ],
-                                ),
-                              );
-
-                              if (confirmed == true && mounted) {
-                                await groupProvider.toggleGroupActiveStatus(
-                                  widget.groupId,
-                                  value,
-                                );
-                              }
-                            },
+                          const SizedBox(height: 4),
+                          Text(
+                            group.isActive
+                                ? 'Members can place orders'
+                                : 'Orders are disabled',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: TropicalColors.mediumText,
+                            ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    Switch(
+                      value: group.isActive,
+                      activeColor: TropicalColors.mint,
+                      onChanged: (value) async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(value ? 'Activate Group?' : 'Deactivate Group?'),
+                            content: Text(
+                              value
+                                  ? 'Members will be able to place orders.'
+                                  : 'Members will not be able to place orders.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: value ? TropicalColors.mint : TropicalColors.orange,
+                                ),
+                                child: Text(value ? 'Activate' : 'Deactivate'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true && mounted) {
+                          await groupProvider.toggleGroupActiveStatus(
+                            widget.groupId,
+                            value,
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-
               // Statistics Section
-              _buildSectionHeader(context, 'Statistics', Icons.bar_chart),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _buildStatRow('Total Members', '${group.memberIds.length}'),
-                      const Divider(height: 24),
-                      _buildStatRow('Total Restaurants', '${groupProvider.restaurants.length}'),
-                      const Divider(height: 24),
-                      _buildStatRow(
-                        'Created On',
-                        DateFormat('MMM d, yyyy').format(group.createdAt),
-                      ),
-                      const Divider(height: 24),
-                      _buildStatRow('Group ID', group.id, isMonospace: true),
-                    ],
+              _buildSectionHeader(context, 'Statistics', Icons.bar_chart_rounded),
+              Container(
+                margin: const EdgeInsets.only(bottom: 32),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    width: 1,
                   ),
                 ),
+                child: Column(
+                  children: [
+                    _buildStatRow('Total Members', '${group.memberIds.length}'),
+                    Divider(height: 32, color: Colors.black.withValues(alpha: 0.08)),
+                    _buildStatRow('Total Restaurants', '${groupProvider.restaurants.length}'),
+                    Divider(height: 32, color: Colors.black.withValues(alpha: 0.08)),
+                    _buildStatRow(
+                      'Created On',
+                      DateFormat('MMM d, yyyy').format(group.createdAt),
+                    ),
+                    Divider(height: 32, color: Colors.black.withValues(alpha: 0.08)),
+                    _buildStatRow('Group ID', group.id, isMonospace: true),
+                  ],
+                ),
               ),
-              const SizedBox(height: 32),
-
               // Danger Zone
               _buildSectionHeader(
                 context,
                 'Danger Zone',
-                Icons.warning,
-                color: Colors.red,
+                Icons.warning_rounded,
+                color: TropicalColors.error,
               ),
-              Card(
-                color: Colors.red[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Delete Group',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: TropicalColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: TropicalColors.error.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: TropicalColors.error.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.delete_forever_rounded,
+                            color: TropicalColors.error,
+                            size: 22,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Permanently delete this group and all associated data. This action cannot be undone.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.red[900],
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Delete Group',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: TropicalColors.error,
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Permanently delete this group and all associated data. This action cannot be undone.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: TropicalColors.error.withValues(alpha: 0.9),
+                        height: 1.5,
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _confirmDeleteGroup(groupProvider),
-                          icon: const Icon(Icons.delete_forever),
-                          label: const Text('Delete Group'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _confirmDeleteGroup(groupProvider),
+                        icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                        label: const Text(
+                          'Delete Group Permanently',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: TropicalColors.error,
+                          side: BorderSide(color: TropicalColors.error, width: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 32),
@@ -394,14 +473,19 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: color ?? Theme.of(context).colorScheme.primary),
+          Icon(
+            icon,
+            size: 24,
+            color: color ?? TropicalColors.orange,
+          ),
           const SizedBox(width: 8),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color ?? TropicalColors.darkText,
+            ),
           ),
         ],
       ),
@@ -414,9 +498,10 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
-            color: Colors.grey[600],
+            color: TropicalColors.mediumText,
+            fontWeight: FontWeight.w500,
           ),
         ),
         Flexible(
@@ -424,8 +509,9 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
             value,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               fontFamily: isMonospace ? 'monospace' : null,
+              color: TropicalColors.darkText,
             ),
             textAlign: TextAlign.right,
             overflow: TextOverflow.ellipsis,

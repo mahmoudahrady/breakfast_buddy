@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../models/group.dart';
+import '../../widgets/offline_banner.dart';
+import '../../utils/dialog_utils.dart';
 import 'create_group_screen.dart';
 import 'group_details_screen.dart';
 import 'join_group_screen.dart';
@@ -92,91 +93,60 @@ class _GroupListScreenState extends State<GroupListScreen> {
             onPressed: _navigateToJoinGroup,
           ),
           // Settings Menu (Three Dots)
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, _) => PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded),
-              tooltip: 'Settings',
-              onSelected: (value) async {
-                switch (value) {
-                  case 'theme':
-                    themeProvider.toggleTheme();
-                    break;
-                  case 'logout':
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true && context.mounted) {
-                      await authProvider.signOut();
-                    }
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem<String>(
-                  value: 'theme',
-                  child: Row(
-                    children: [
-                      Icon(
-                        themeProvider.isDarkMode
-                            ? Icons.light_mode_rounded
-                            : Icons.dark_mode_rounded,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        themeProvider.isDarkMode
-                            ? 'Light Mode'
-                            : 'Dark Mode',
-                      ),
-                    ],
-                  ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'Settings',
+            onSelected: (value) async {
+              switch (value) {
+                case 'logout':
+                  final confirmed = await DialogUtils.showConfirmation(
+                    context,
+                    title: 'Logout',
+                    message: 'Are you sure you want to logout?',
+                    confirmText: 'Logout',
+                    isDangerous: true,
+                  );
+                  if (confirmed && context.mounted) {
+                    await authProvider.signOut();
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      size: 20,
+                      color: Colors.red,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ],
                 ),
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.logout_rounded,
-                        size: 20,
-                        color: Colors.red,
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: groupProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : groupProvider.userGroups.isEmpty
-              ? _buildEmptyState()
-              : _buildGroupList(groupProvider.userGroups, authProvider.user?.id),
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: groupProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : groupProvider.userGroups.isEmpty
+                    ? _buildEmptyState()
+                    : _buildGroupList(groupProvider.userGroups, authProvider.user?.id),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToCreateGroup,
         icon: const Icon(Icons.add),

@@ -17,7 +17,7 @@ class CartPreviewWidget extends StatelessWidget {
   });
 
   double _calculateTotal(List<Order> orders) {
-    return orders.fold(0.0, (sum, order) => sum + (order.price * order.quantity));
+    return orders.fold(0.0, (sum, order) => sum + order.totalPrice);
   }
 
   int _calculateItemCount(List<Order> orders) {

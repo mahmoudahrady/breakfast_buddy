@@ -201,6 +201,54 @@ class OrderProvider with ChangeNotifier {
     return allSucceeded;
   }
 
+  // Update order (for editing existing orders)
+  Future<bool> updateOrder(Order order) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      await _databaseService.updateOrder(order);
+      AppLogger.info('Order updated successfully: ${order.id}');
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to update order: $e';
+      AppLogger.error('Error updating order', e);
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Update order status (for admin/workflow management)
+  Future<bool> updateOrderStatus({
+    required String orderId,
+    required String statusName,
+    required String updatedBy,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      await _databaseService.updateOrderStatus(
+        orderId: orderId,
+        status: statusName,
+        updatedBy: updatedBy,
+      );
+      AppLogger.info('Order status updated: $orderId -> $statusName');
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to update order status: $e';
+      AppLogger.error('Error updating order status', e);
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Delete order
   // Simple delete order method (for group-based orders without sessions)
   Future<bool> deleteOrder(String orderId) async {
@@ -336,7 +384,7 @@ class OrderProvider with ChangeNotifier {
     double total = 0.0;
     for (var order in _orders) {
       if (order.userId == userId) {
-        total += order.price * order.quantity;
+        total += order.totalPrice;
       }
     }
     return total;
@@ -352,7 +400,7 @@ class OrderProvider with ChangeNotifier {
     double total = 0.0;
     for (var order in _orders) {
       if (order.userId == userId) {
-        total += order.price * order.quantity;
+        total += order.totalPrice;
       }
     }
     return total;

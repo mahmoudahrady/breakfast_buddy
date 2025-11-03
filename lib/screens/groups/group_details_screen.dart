@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/group.dart';
 import '../../models/group_member.dart';
@@ -13,6 +12,7 @@ import '../../models/payment.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/currency_display.dart';
 import '../../widgets/order_deadline_banner.dart';
+import '../../config/tropical_theme.dart';
 import 'group_invitation_dialog.dart';
 import '../orders/order_confirmation_screen.dart';
 import '../payments/split_calculator_screen.dart';
@@ -343,213 +343,227 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         title: Text(group.name),
         actions: [
           // Unified Settings Menu (Three Dots)
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, _) => PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded),
-              tooltip: 'Menu',
-              onSelected: (value) async {
-                switch (value) {
-                  case 'insights':
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupInsightsScreen(groupId: widget.groupId),
-                      ),
-                    );
-                    break;
-                  case 'settings':
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupSettingsScreen(groupId: widget.groupId),
-                      ),
-                    );
-                    break;
-                  case 'invite':
-                    _showInvitationDialog(context, group);
-                    break;
-                  case 'copy':
-                    _copyGroupId();
-                    break;
-                  case 'toggle':
-                    await _toggleGroupActiveStatus(groupProvider, group);
-                    break;
-                  case 'theme':
-                    themeProvider.toggleTheme();
-                    break;
-                  case 'logout':
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true && context.mounted) {
-                      await authProvider.signOut();
-                    }
-                    break;
-                  case 'delete':
-                    _deleteGroup();
-                    break;
-                  case 'leave':
-                    _leaveGroup();
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                // Group Actions
-                const PopupMenuItem<String>(
-                  value: 'insights',
-                  child: Row(
-                    children: [
-                      Icon(Icons.insights, size: 20),
-                      SizedBox(width: 12),
-                      Text('Group Insights'),
-                    ],
-                  ),
-                ),
-                if (isAdmin)
-                  const PopupMenuItem<String>(
-                    value: 'settings',
-                    child: Row(
-                      children: [
-                        Icon(Icons.settings, size: 20),
-                        SizedBox(width: 12),
-                        Text('Group Settings'),
-                      ],
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'Menu',
+            onSelected: (value) async {
+              switch (value) {
+                case 'insights':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupInsightsScreen(groupId: widget.groupId),
                     ),
-                  ),
-                if (isAdmin)
-                  const PopupMenuItem<String>(
-                    value: 'invite',
-                    child: Row(
-                      children: [
-                        Icon(Icons.qr_code_2, size: 20),
-                        SizedBox(width: 12),
-                        Text('Invite Members'),
-                      ],
+                  );
+                  break;
+                case 'settings':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupSettingsScreen(groupId: widget.groupId),
                     ),
-                  ),
-                // const PopupMenuItem<String>(
-                //   value: 'copy',
-                //   child: Row(
-                //     children: [
-                //       Icon(Icons.content_copy, size: 20),
-                //       SizedBox(width: 12),
-                //       Text('Copy Group ID'),
-                //     ],
-                //   ),
-                // ),
-                // if (isAdmin)
-                //   PopupMenuItem<String>(
-                //     value: 'toggle',
-                //     child: Row(
-                //       children: [
-                //         Icon(
-                //           group.isActive ? Icons.toggle_on : Icons.toggle_off,
-                //           size: 20,
-                //           color: group.isActive ? Colors.green : Colors.grey,
-                //         ),
-                //         const SizedBox(width: 12),
-                //         Text(group.isActive ? 'Deactivate Group' : 'Activate Group'),
-                //       ],
-                //     ),
-                //   ),
-                const PopupMenuDivider(),
-                // App Settings
-                PopupMenuItem<String>(
-                  value: 'theme',
-                  child: Row(
-                    children: [
-                      Icon(
-                        themeProvider.isDarkMode
-                            ? Icons.light_mode_rounded
-                            : Icons.dark_mode_rounded,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        themeProvider.isDarkMode
-                            ? 'Light Mode'
-                            : 'Dark Mode',
-                      ),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.logout_rounded,
-                        size: 20,
-                        color: Colors.orange,
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.orange),
-                      ),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
-                // Destructive Actions
-                if (isAdmin)
-                  const PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, size: 20, color: Colors.red),
-                        SizedBox(width: 12),
-                        Text(
-                          'Delete Group',
-                          style: TextStyle(color: Colors.red),
+                  );
+                  break;
+                case 'invite':
+                  _showInvitationDialog(context, group);
+                  break;
+                case 'copy':
+                  _copyGroupId();
+                  break;
+                case 'toggle':
+                  await _toggleGroupActiveStatus(groupProvider, group);
+                  break;
+                case 'logout':
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Logout'),
+                      content: const Text('Are you sure you want to logout?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Logout'),
                         ),
                       ],
                     ),
+                  );
+                  if (confirmed == true && context.mounted) {
+                    await authProvider.signOut();
+                  }
+                  break;
+                case 'delete':
+                  _deleteGroup();
+                  break;
+                case 'leave':
+                  _leaveGroup();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              // Group Actions
+              const PopupMenuItem<String>(
+                value: 'insights',
+                child: Row(
+                  children: [
+                    Icon(Icons.insights, size: 20),
+                    SizedBox(width: 12),
+                    Text('Group Insights'),
+                  ],
+                ),
+              ),
+              if (isAdmin)
+                const PopupMenuItem<String>(
+                  value: 'settings',
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, size: 20),
+                      SizedBox(width: 12),
+                      Text('Group Settings'),
+                    ],
                   ),
-                if (!isAdmin)
-                  const PopupMenuItem<String>(
-                    value: 'leave',
-                    child: Row(
-                      children: [
-                        Icon(Icons.exit_to_app, size: 20, color: Colors.red),
-                        SizedBox(width: 12),
-                        Text(
-                          'Leave Group',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ],
+                ),
+              if (isAdmin)
+                const PopupMenuItem<String>(
+                  value: 'invite',
+                  child: Row(
+                    children: [
+                      Icon(Icons.qr_code_2, size: 20),
+                      SizedBox(width: 12),
+                      Text('Invite Members'),
+                    ],
+                  ),
+                ),
+              // const PopupMenuItem<String>(
+              //   value: 'copy',
+              //   child: Row(
+              //     children: [
+              //       Icon(Icons.content_copy, size: 20),
+              //       SizedBox(width: 12),
+              //       Text('Copy Group ID'),
+              //     ],
+              //   ),
+              // ),
+              // if (isAdmin)
+              //   PopupMenuItem<String>(
+              //     value: 'toggle',
+              //     child: Row(
+              //       children: [
+              //         Icon(
+              //           group.isActive ? Icons.toggle_on : Icons.toggle_off,
+              //           size: 20,
+              //           color: group.isActive ? Colors.green : Colors.grey,
+              //         ),
+              //         const SizedBox(width: 12),
+              //         Text(group.isActive ? 'Deactivate Group' : 'Activate Group'),
+              //       ],
+              //     ),
+              //   ),
+              const PopupMenuDivider(),
+              // App Settings
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      size: 20,
+                      color: Colors.orange,
                     ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              // Destructive Actions
+              if (isAdmin)
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, size: 20, color: Colors.red),
+                      SizedBox(width: 12),
+                      Text(
+                        'Delete Group',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              if (!isAdmin)
+                const PopupMenuItem<String>(
+                  value: 'leave',
+                  child: Row(
+                    children: [
+                      Icon(Icons.exit_to_app, size: 20, color: Colors.red),
+                      SizedBox(width: 12),
+                      Text(
+                        'Leave Group',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'My Orders', icon: Icon(Icons.shopping_bag)),
-            Tab(text: 'Orders', icon: Icon(Icons.receipt_long)),
-            Tab(text: 'Payments', icon: Icon(Icons.payment)),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: TropicalColors.orange,
+              indicatorWeight: 3,
+              indicatorSize: TabBarIndicatorSize.label,
+              labelColor: TropicalColors.orange,
+              unselectedLabelColor: TropicalColors.mediumText,
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.2,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.shopping_bag_rounded, size: 22),
+                  text: 'My Orders',
+                ),
+                Tab(
+                  icon: Icon(Icons.receipt_long_rounded, size: 22),
+                  text: 'All Orders',
+                ),
+                Tab(
+                  icon: Icon(Icons.payments_rounded, size: 22),
+                  text: 'Payments',
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: Column(
@@ -557,25 +571,103 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           // Group info header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: Theme.of(context).colorScheme.primaryContainer,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  TropicalColors.orange.withValues(alpha: 0.08),
+                  TropicalColors.coral.withValues(alpha: 0.04),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Description
                 Text(
                   group.description,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: TropicalColors.darkText,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                // Info Row
                 Row(
                   children: [
-                    Icon(Icons.admin_panel_settings, size: 16),
-                    const SizedBox(width: 4),
-                    Text('Admin: ${group.adminName}'),
-                    const Spacer(),
-                    Icon(Icons.people, size: 16),
-                    const SizedBox(width: 4),
-                    Text('${group.memberIds.length} members'),
+                    // Admin Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: TropicalColors.orange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: TropicalColors.orange.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.admin_panel_settings_rounded,
+                            size: 14,
+                            color: TropicalColors.orange,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            group.adminName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: TropicalColors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Members Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: TropicalColors.mint.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: TropicalColors.mint.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.people_rounded,
+                            size: 14,
+                            color: TropicalColors.darkGreen,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '${group.memberIds.length} ${group.memberIds.length == 1 ? 'Member' : 'Members'}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: TropicalColors.darkGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -629,23 +721,46 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     if (myOrders.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(40.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.shopping_bag, size: 80, color: Colors.grey.shade400),
-              const SizedBox(height: 16),
-              Text(
-                'No Orders Yet',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(color: Colors.grey.shade600),
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      TropicalColors.orange.withValues(alpha: 0.12),
+                      TropicalColors.coral.withValues(alpha: 0.08),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 60,
+                  color: TropicalColors.orange,
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Go to Restaurants tab to place an order',
-                style: TextStyle(color: Colors.grey.shade600),
+              const SizedBox(height: 24),
+              const Text(
+                'No Orders Yet',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: TropicalColors.darkText,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Start by browsing the menu and\nadding items to your cart',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: TropicalColors.mediumText,
+                  height: 1.5,
+                ),
               ),
             ],
           ),
@@ -662,40 +777,78 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         // Summary header
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: Theme.of(context).colorScheme.primaryContainer,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                TropicalColors.orange.withValues(alpha: 0.08),
+                TropicalColors.coral.withValues(alpha: 0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border(
+              bottom: BorderSide(
+                color: TropicalColors.orange.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Your Orders',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.darkText,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${myOrders.length} ${myOrders.length == 1 ? 'item' : 'items'}',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: TropicalColors.orange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${myOrders.length} ${myOrders.length == 1 ? 'item' : 'items'}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: TropicalColors.orange,
+                      ),
+                    ),
                   ),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    'Total',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  const Text(
+                    'Total Amount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: TropicalColors.mediumText,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   CurrencyDisplay(
                     amount: total,
-                    textStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                    iconColor: Theme.of(context).colorScheme.primary,
-                    iconSize: 20,
+                    textStyle: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.orange,
+                      letterSpacing: -0.5,
+                    ),
+                    iconColor: TropicalColors.orange,
+                    iconSize: 22,
                   ),
                 ],
               ),
@@ -928,44 +1081,87 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         // Only show confirm button if admin, has orders, AND group is active
         if (isAdmin && hasOrders && (group?.isActive ?? false))
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, -4),
                 ),
               ],
+              border: Border(
+                top: BorderSide(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+              ),
             ),
             child: SafeArea(
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total Amount:',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                  // Total Amount Row
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          TropicalColors.orange.withValues(alpha: 0.08),
+                          TropicalColors.coral.withValues(alpha: 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      CurrencyDisplay(
-                        amount: totalAmount,
-                        textStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                        iconColor: Theme.of(context).colorScheme.primary,
-                        iconSize: 20,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: TropicalColors.orange.withValues(alpha: 0.15),
+                        width: 1,
                       ),
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Amount',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: TropicalColors.mediumText,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'All member orders',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: TropicalColors.lightText,
+                              ),
+                            ),
+                          ],
+                        ),
+                        CurrencyDisplay(
+                          amount: totalAmount,
+                          textStyle: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: TropicalColors.orange,
+                            letterSpacing: -0.5,
+                          ),
+                          iconColor: TropicalColors.orange,
+                          iconSize: 24,
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   // Split Calculator Button
                   SizedBox(
                     width: double.infinity,
+                    height: 52,
                     child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -977,10 +1173,24 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                           ),
                         );
                       },
-                      icon: const Icon(Icons.calculate),
-                      label: const Text('Split Calculator'),
+                      icon: const Icon(Icons.calculate_rounded, size: 22),
+                      label: const Text(
+                        'Split Calculator',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        foregroundColor: TropicalColors.orange,
+                        side: const BorderSide(
+                          color: TropicalColors.orange,
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ),
@@ -988,6 +1198,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   // Confirm Orders Button
                   SizedBox(
                     width: double.infinity,
+                    height: 52,
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -999,12 +1210,23 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                           ),
                         );
                       },
-                      icon: const Icon(Icons.receipt_long),
-                      label: const Text('Review & Confirm Orders'),
+                      icon: const Icon(Icons.receipt_long_rounded, size: 22),
+                      label: const Text(
+                        'Review & Confirm Orders',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: TropicalColors.orange,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shadowColor: TropicalColors.orange.withValues(alpha: 0.4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ),
@@ -1239,18 +1461,28 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondaryContainer,
+            gradient: LinearGradient(
+              colors: [
+                TropicalColors.orange.withValues(alpha: 0.08),
+                TropicalColors.coral.withValues(alpha: 0.04),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
           child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     'Payment Summary',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.darkText,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _copyPaymentSummary(
@@ -1262,15 +1494,26 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                       paidCount,
                       unpaidCount,
                     ),
-                    icon: const Icon(Icons.copy, size: 16),
-                    label: const Text('Copy Summary'),
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    label: const Text(
+                      'Copy',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      foregroundColor: TropicalColors.orange,
+                      side: const BorderSide(color: TropicalColors.orange, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -1278,21 +1521,21 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     context,
                     'Paid',
                     paidCount.toString(),
-                    Colors.green,
+                    TropicalColors.mint,
                     totalPaid,
                   ),
                   _buildSummaryCard(
                     context,
                     'Unpaid',
                     unpaidCount.toString(),
-                    Colors.orange,
+                    TropicalColors.orange,
                     totalUnpaid,
                   ),
                   _buildSummaryCard(
                     context,
                     'Total',
                     totalParticipants.toString(),
-                    Theme.of(context).colorScheme.primary,
+                    TropicalColors.coral,
                     totalAmount,
                   ),
                 ],
@@ -1354,40 +1597,55 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     Color color,
     double amount,
   ) {
-    return Card(
-      elevation: 2,
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              count,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            CurrencyDisplay(
-              amount: amount,
-              textStyle: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-              iconSize: 10,
-            ),
-          ],
+    return Container(
+      width: 100,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: TropicalColors.mediumText,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            count,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          CurrencyDisplay(
+            amount: amount,
+            textStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: TropicalColors.darkText,
+            ),
+            iconSize: 11,
+          ),
+        ],
       ),
     );
   }

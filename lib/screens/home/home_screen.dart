@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/order.dart' as OrderModel;
 import '../../widgets/currency_display.dart';
 import '../../widgets/quick_order_card.dart';
+import '../../widgets/offline_banner.dart';
+import '../../utils/dialog_utils.dart';
+import '../../config/tropical_theme.dart';
 import '../groups/group_list_screen.dart';
 import '../groups/group_details_screen.dart';
 import '../profile/profile_screen.dart';
@@ -80,23 +82,47 @@ class _HomeScreenState extends State<HomeScreen> {
     final groupProvider = Provider.of<GroupProvider>(context);
 
     return Scaffold(
+      backgroundColor: TropicalColors.background,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
+                gradient: LinearGradient(
+                  colors: [
+                    TropicalColors.orange,
+                    TropicalColors.coral,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: TropicalColors.orange.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
-                Icons.restaurant,
+                Icons.restaurant_rounded,
                 color: Colors.white,
-                size: 24,
+                size: 22,
               ),
             ),
             const SizedBox(width: 12),
-            const Text('Breakfast Buddy'),
+            const Text(
+              'Breakfast Buddy',
+              style: TextStyle(
+                color: TropicalColors.darkText,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.3,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -113,116 +139,82 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'My Groups',
           ),
           // Settings Menu (Three Dots)
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, _) => PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded),
-              tooltip: 'Settings',
-              onSelected: (value) async {
-                switch (value) {
-                  case 'profile':
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileScreen(),
-                      ),
-                    );
-                    break;
-                  case 'theme':
-                    themeProvider.toggleTheme();
-                    break;
-                  case 'logout':
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true && context.mounted) {
-                      await authProvider.signOut();
-                    }
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem<String>(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.person_rounded,
-                        size: 20,
-                      ),
-                      SizedBox(width: 12),
-                      Text('الملف الشخصي'),
-                    ],
-                  ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'Settings',
+            onSelected: (value) async {
+              switch (value) {
+                case 'profile':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfileScreen(),
+                    ),
+                  );
+                  break;
+                case 'logout':
+                  final confirmed = await DialogUtils.showConfirmation(
+                    context,
+                    title: 'Logout',
+                    message: 'Are you sure you want to logout?',
+                    confirmText: 'Logout',
+                    isDangerous: true,
+                  );
+                  if (confirmed && context.mounted) {
+                    await authProvider.signOut();
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.person_rounded,
+                      size: 20,
+                    ),
+                    SizedBox(width: 12),
+                    Text('الملف الشخصي'),
+                  ],
                 ),
-                const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'theme',
-                  child: Row(
-                    children: [
-                      Icon(
-                        themeProvider.isDarkMode
-                            ? Icons.light_mode_rounded
-                            : Icons.dark_mode_rounded,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        themeProvider.isDarkMode
-                            ? 'Light Mode'
-                            : 'Dark Mode',
-                      ),
-                    ],
-                  ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      size: 20,
+                      color: Colors.red,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ],
                 ),
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.logout_rounded,
-                        size: 20,
-                        color: Colors.red,
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               // Modern Hero Section
               Container(
                 padding: const EdgeInsets.all(24),
@@ -231,16 +223,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.secondary,
+                      TropicalColors.orange,
+                      TropicalColors.coral,
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+                      color: TropicalColors.orange.withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -253,14 +245,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
                           ),
                         ],
                       ),
                       child: CircleAvatar(
                         radius: 32,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: TropicalColors.orange,
                         child: Text(
                           authProvider.user?.name[0].toUpperCase() ?? 'U',
                           style: const TextStyle(
@@ -278,8 +270,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             _getGreeting(),
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -310,21 +302,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: TropicalColors.orange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(
-                        Icons.flash_on,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
+                      child: const Icon(
+                        Icons.flash_on_rounded,
+                        color: TropicalColors.orange,
+                        size: 22,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
+                    const Text(
                       'Quick Order',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: TropicalColors.darkText,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                   ],
                 ),
@@ -351,26 +346,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 }).toList(),
                 if (groupProvider.userGroups.where((g) => g.isActive).isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.grey[600],
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: TropicalColors.orange.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: TropicalColors.orange.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: TropicalColors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'No active groups. Activate a group to start ordering!',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                              ),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: TropicalColors.orange,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'No active groups. Activate a group to start ordering!',
+                            style: TextStyle(
+                              color: TropicalColors.darkText,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 const SizedBox(height: 24),
@@ -383,48 +394,59 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: TropicalColors.orange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.local_fire_department_rounded,
-                        color: Colors.orange,
-                        size: 20,
+                        color: TropicalColors.orange,
+                        size: 22,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
+                    const Text(
                       'Active Today',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: TropicalColors.darkText,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Card(
-                  color: Theme.of(context).colorScheme.primaryContainer,
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: TropicalColors.orange.withValues(alpha: 0.2),
+                      width: 1.5,
+                    ),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: EdgeInsets.zero,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            const Text(
                               'Your Orders Today',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                fontSize: 18,
+                                color: TropicalColors.darkText,
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                borderRadius: BorderRadius.circular(12),
+                                color: TropicalColors.orange,
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 '${_todayOrders!.length} ${_todayOrders!.length == 1 ? 'order' : 'orders'}',
@@ -438,24 +460,49 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        ..._todayOrders!.take(3).map((order) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
+                        ..._todayOrders!.take(3).map((order) => Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: TropicalColors.orange.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: TropicalColors.orange.withValues(alpha: 0.1),
+                                  width: 1,
+                                ),
+                              ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.restaurant, size: 16, color: Theme.of(context).colorScheme.onPrimaryContainer),
-                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: TropicalColors.orange.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.restaurant_rounded,
+                                      size: 16,
+                                      color: TropicalColors.orange,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       order.itemName,
-                                      style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer),
+                                      style: const TextStyle(
+                                        color: TropicalColors.darkText,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   CurrencyDisplay(
-                                    amount: order.price * order.quantity,
-                                    textStyle: TextStyle(
+                                    amount: order.totalPrice,
+                                    textStyle: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      color: TropicalColors.darkText,
+                                      fontSize: 14,
                                     ),
                                     iconSize: 12,
                                   ),
@@ -488,15 +535,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                     },
                                     borderRadius: BorderRadius.circular(8),
                                     child: Container(
-                                      padding: const EdgeInsets.all(4),
+                                      padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: TropicalColors.mint.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(
-                                        Icons.refresh,
+                                      child: const Icon(
+                                        Icons.refresh_rounded,
                                         size: 16,
-                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                        color: TropicalColors.mint,
                                       ),
                                     ),
                                   ),
@@ -505,13 +552,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             )),
                         if (_todayOrders!.length > 3)
                           Padding(
-                            padding: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               '+${_todayOrders!.length - 3} more',
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: const TextStyle(
+                                fontSize: 13,
                                 fontStyle: FontStyle.italic,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                                color: TropicalColors.mediumText,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -522,27 +570,233 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
               ],
 
+              // My Groups
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: TropicalColors.coral.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.groups_rounded,
+                          color: TropicalColors.coral,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'My Groups',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: TropicalColors.darkText,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const GroupListScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 18,
+                      color: TropicalColors.orange,
+                    ),
+                    label: const Text(
+                      'See All',
+                      style: TextStyle(
+                        color: TropicalColors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              groupProvider.userGroups.isEmpty
+                  ? Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: TropicalColors.coral.withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.groups_outlined,
+                              size: 48,
+                              color: TropicalColors.coral,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'No groups yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: TropicalColors.darkText,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Join or create a group to start ordering!',
+                            style: TextStyle(
+                              color: TropicalColors.mediumText,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: groupProvider.userGroups.take(3).map((group) {
+                        final isActive = _activeGroupIds?.contains(group.id) ?? false;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isActive
+                                  ? TropicalColors.mint.withValues(alpha: 0.3)
+                                  : Colors.black.withValues(alpha: 0.06),
+                              width: 1,
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: CircleAvatar(
+                              radius: 24,
+                              backgroundColor: isActive
+                                  ? TropicalColors.mint
+                                  : TropicalColors.coral,
+                              child: Icon(
+                                isActive ? Icons.whatshot_rounded : Icons.group_rounded,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                            ),
+                            title: Text(
+                              group.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: TropicalColors.darkText,
+                              ),
+                            ),
+                            subtitle: Row(
+                              children: [
+                                Icon(
+                                  Icons.people_rounded,
+                                  size: 14,
+                                  color: TropicalColors.mediumText,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${group.memberIds.length} members',
+                                  style: const TextStyle(
+                                    color: TropicalColors.mediumText,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                if (isActive) ...[
+                                  const Text(
+                                    ' • ',
+                                    style: TextStyle(color: TropicalColors.mediumText),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: TropicalColors.mint.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'Active',
+                                      style: TextStyle(
+                                        color: TropicalColors.darkGreen,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            trailing: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: TropicalColors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward_rounded,
+                                color: TropicalColors.orange,
+                                size: 18,
+                              ),
+                            ),
+                            onTap: () async {
+                              await groupProvider.selectGroup(group.id);
+                              if (context.mounted) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => GroupDetailsScreen(groupId: group.id),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+              const SizedBox(height: 24),
+
               // Quick Stats
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: TropicalColors.mint.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.bar_chart_rounded,
-                      color: Colors.blue,
-                      size: 20,
+                      color: TropicalColors.mint,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
+                  const Text(
                     'This Month',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.darkText,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ],
               ),
@@ -555,10 +809,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: _buildStatCard(
                             context,
-                            Icons.shopping_bag,
+                            Icons.shopping_bag_rounded,
                             '${_monthlyStats?['orderCount'] ?? 0}',
                             'Orders',
-                            Colors.blue,
+                            TropicalColors.coral,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -577,134 +831,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: _buildStatCard(
                       context,
-                      Icons.groups,
+                      Icons.groups_rounded,
                       '${groupProvider.userGroups.length}',
                       'Groups',
-                      Colors.purple,
+                      TropicalColors.coral,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildStatCard(
                       context,
-                      Icons.whatshot,
+                      Icons.whatshot_rounded,
                       '${_activeGroupIds?.length ?? 0}',
                       'Active',
-                      Colors.orange,
+                      TropicalColors.orange,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // My Groups
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.groups_rounded,
-                          color: Colors.purple,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'My Groups',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const GroupListScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                    label: const Text('See All'),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-
-              groupProvider.userGroups.isEmpty
-                  ? Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.groups_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No groups yet',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Join or create a group to start ordering!',
-                              style: TextStyle(color: Colors.grey[600]),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Column(
-                      children: groupProvider.userGroups.take(3).map((group) {
-                        final isActive = _activeGroupIds?.contains(group.id) ?? false;
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: isActive
-                                  ? Colors.green
-                                  : Theme.of(context).colorScheme.primary,
-                              child: Icon(
-                                isActive ? Icons.whatshot : Icons.group,
-                                color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              group.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              '${group.memberIds.length} members${isActive ? ' • Active now' : ''}',
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () async {
-                              await groupProvider.selectGroup(group.id);
-                              if (context.mounted) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => GroupDetailsScreen(groupId: group.id),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -716,99 +866,113 @@ class _HomeScreenState extends State<HomeScreen> {
     String label,
     Color color,
   ) {
-    return Card(
-      child: Container(
-        padding: const EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.1),
-              color.withOpacity(0.05),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 24, color: color),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+            child: Icon(icon, size: 24, color: color),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: color,
+              letterSpacing: -0.5,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w600,
-                  ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: TropicalColors.mediumText,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSpendingCard(BuildContext context, double amount) {
-    return Card(
-      child: Container(
-        padding: const EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.green.withOpacity(0.1),
-              Colors.green.withOpacity(0.05),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: TropicalColors.mint.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: TropicalColors.mint.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.payments_rounded, size: 24, color: Colors.green),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: TropicalColors.mint.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 16),
-            CurrencyDisplay(
-              amount: amount,
-              textStyle: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-              iconColor: Colors.green,
-              iconSize: 20,
+            child: const Icon(
+              Icons.payments_rounded,
+              size: 24,
+              color: TropicalColors.mint,
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Total Spent',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w600,
-                  ),
+          ),
+          const SizedBox(height: 16),
+          CurrencyDisplay(
+            amount: amount,
+            textStyle: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: TropicalColors.mint,
+              letterSpacing: -0.5,
             ),
-          ],
-        ),
+            iconColor: TropicalColors.mint,
+            iconSize: 20,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Total Spent',
+            style: TextStyle(
+              fontSize: 13,
+              color: TropicalColors.mediumText,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

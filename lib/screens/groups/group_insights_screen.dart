@@ -6,6 +6,7 @@ import '../../providers/group_provider.dart';
 import '../../services/database_service.dart';
 import '../../models/order.dart';
 import '../../widgets/currency_display.dart';
+import '../../config/tropical_theme.dart';
 
 class GroupInsightsScreen extends StatefulWidget {
   final String groupId;
@@ -33,13 +34,29 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     }
 
     return Scaffold(
+      backgroundColor: TropicalColors.background,
       appBar: AppBar(
         title: const Text('Group Insights'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: Colors.white,
         actions: [
           PopupMenuButton<String>(
             initialValue: _timeRange,
             onSelected: (value) => setState(() => _timeRange = value),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: TropicalColors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.filter_list_rounded,
+                color: TropicalColors.orange,
+                size: 22,
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             itemBuilder: (context) => [
               const PopupMenuItem(value: '7', child: Text('Last 7 Days')),
               const PopupMenuItem(value: '30', child: Text('Last 30 Days')),
@@ -64,16 +81,34 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.insights, size: 80, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: TropicalColors.orange.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.insights_rounded,
+                      size: 64,
+                      color: TropicalColors.orange,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
                     'No data available',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.darkText,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Start ordering to see insights!',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                      color: TropicalColors.mediumText,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
@@ -180,40 +215,65 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
                 ? 'Last 30 Days'
                 : 'Last 90 Days';
 
-    return Card(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Icon(
-              Icons.insights,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Group Analytics',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    timeRangeText,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            TropicalColors.orange.withValues(alpha: 0.08),
+            TropicalColors.coral.withValues(alpha: 0.04),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: TropicalColors.orange.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: TropicalColors.orange.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.insights_rounded,
+              size: 32,
+              color: TropicalColors.orange,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Group Analytics',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: TropicalColors.darkText,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  timeRangeText,
+                  style: const TextStyle(
+                    color: TropicalColors.mediumText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -222,11 +282,17 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Key Metrics',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Key Metrics',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: TropicalColors.darkText,
+              letterSpacing: -0.3,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -234,20 +300,20 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
             Expanded(
               child: _buildMetricCard(
                 context,
-                Icons.shopping_bag,
+                Icons.shopping_bag_rounded,
                 '${stats['totalOrders']}',
                 'Total Orders',
-                Colors.blue,
+                TropicalColors.coral,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildMetricCard(
                 context,
-                Icons.people,
+                Icons.people_rounded,
                 '${stats['activeMemberCount']}',
                 'Active Members',
-                Colors.purple,
+                TropicalColors.mint,
               ),
             ),
           ],
@@ -257,68 +323,129 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
           children: [
             Expanded(
               flex: 2,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.payments, color: Colors.green, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Total Spent',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      CurrencyDisplay(
-                        amount: stats['totalSpent'],
-                        textStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                        iconColor: Colors.green,
-                        iconSize: 18,
-                      ),
-                    ],
+              child: Container(
+                margin: const EdgeInsets.only(left: 16, right: 6),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: TropicalColors.mint.withValues(alpha: 0.2),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: TropicalColors.mint.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: TropicalColors.mint.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.payments_rounded,
+                            color: TropicalColors.mint,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Total Spent',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: TropicalColors.mediumText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    CurrencyDisplay(
+                      amount: stats['totalSpent'],
+                      textStyle: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: TropicalColors.mint,
+                        letterSpacing: -0.5,
+                      ),
+                      iconColor: TropicalColors.mint,
+                      iconSize: 18,
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: 12),
             Expanded(
               flex: 2,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.receipt, color: Colors.orange, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Avg Order',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      CurrencyDisplay(
-                        amount: stats['avgOrderValue'],
-                        textStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                        iconColor: Colors.orange,
-                        iconSize: 18,
-                      ),
-                    ],
+              child: Container(
+                margin: const EdgeInsets.only(left: 6, right: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: TropicalColors.orange.withValues(alpha: 0.2),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: TropicalColors.orange.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: TropicalColors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_rounded,
+                            color: TropicalColors.orange,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Avg Order',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: TropicalColors.mediumText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    CurrencyDisplay(
+                      amount: stats['avgOrderValue'],
+                      textStyle: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: TropicalColors.orange,
+                        letterSpacing: -0.5,
+                      ),
+                      iconColor: TropicalColors.orange,
+                      iconSize: 18,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -335,26 +462,55 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     String label,
     Color color,
   ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 28, color: color),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: TropicalColors.mediumText,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -377,56 +533,77 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Spending Trend (Last 7 Days)',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Spending Trend (Last 7 Days)',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: TropicalColors.darkText,
+              letterSpacing: -0.3,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: dailyData.values.isEmpty ? 100 : dailyData.values.reduce((a, b) => a > b ? a : b) * 1.2,
-                  barGroups: dailyData.entries.map((e) {
-                    final index = dailyData.keys.toList().indexOf(e.key);
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: e.value,
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 16,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.black.withValues(alpha: 0.06),
+              width: 1,
+            ),
+          ),
+          child: SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: dailyData.values.isEmpty ? 100 : dailyData.values.reduce((a, b) => a > b ? a : b) * 1.2,
+                barGroups: dailyData.entries.map((e) {
+                  final index = dailyData.keys.toList().indexOf(e.key);
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: e.value,
+                        color: TropicalColors.orange,
+                        width: 16,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        gradient: LinearGradient(
+                          colors: [
+                            TropicalColors.orange,
+                            TropicalColors.coral,
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
                         ),
-                      ],
-                    );
-                  }).toList(),
-                  titlesData: FlTitlesData(
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final keys = dailyData.keys.toList();
-                          if (value.toInt() >= 0 && value.toInt() < keys.length) {
-                            return Text(keys[value.toInt()], style: const TextStyle(fontSize: 10));
-                          }
-                          return const Text('');
-                        },
                       ),
+                    ],
+                  );
+                }).toList(),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final keys = dailyData.keys.toList();
+                        if (value.toInt() >= 0 && value.toInt() < keys.length) {
+                          return Text(keys[value.toInt()], style: const TextStyle(fontSize: 10));
+                        }
+                        return const Text('');
+                      },
                     ),
                   ),
-                  gridData: const FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
                 ),
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
               ),
             ),
           ),
@@ -446,11 +623,17 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Top Members',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Top Members',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: TropicalColors.darkText,
+              letterSpacing: -0.3,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         ...sortedMembers.take(5).map((entry) {
@@ -461,22 +644,36 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
           final rank = sortedMembers.indexOf(entry) + 1;
           final orderCount = memberOrderCount[entry.key] ?? 0;
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
+          return Container(
+            margin: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.black.withValues(alpha: 0.06),
+                width: 1,
+              ),
+            ),
             child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: Stack(
                 children: [
                   CircleAvatar(
+                    radius: 24,
                     backgroundColor: rank == 1
                         ? Colors.amber
                         : rank == 2
                             ? Colors.grey[400]
                             : rank == 3
                                 ? Colors.brown[300]
-                                : Theme.of(context).colorScheme.primary,
+                                : TropicalColors.orange,
                     child: Text(
                       member.userName[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                   if (rank <= 3)
@@ -484,15 +681,21 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
                       right: -2,
                       bottom: -2,
                       child: Container(
-                        padding: const EdgeInsets.all(2),
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
                         child: Icon(
                           Icons.emoji_events,
-                          size: 12,
+                          size: 14,
                           color: rank == 1
                               ? Colors.amber
                               : rank == 2
@@ -505,14 +708,25 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
               ),
               title: Text(
                 member.userName,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: TropicalColors.darkText,
+                ),
               ),
-              subtitle: Text('$orderCount orders'),
+              subtitle: Text(
+                '$orderCount orders',
+                style: const TextStyle(
+                  color: TropicalColors.mediumText,
+                  fontSize: 14,
+                ),
+              ),
               trailing: CurrencyDisplay(
                 amount: entry.value,
                 textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: TropicalColors.darkText,
                 ),
                 iconSize: 14,
               ),
@@ -530,31 +744,65 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Most Ordered Items',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Most Ordered Items',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: TropicalColors.darkText,
+              letterSpacing: -0.3,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         ...popularItems.take(5).map((entry) {
           final revenue = itemRevenue[entry.key] ?? 0;
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
+          return Container(
+            margin: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.black.withValues(alpha: 0.06),
+                width: 1,
+              ),
+            ),
             child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-                child: const Icon(Icons.fastfood),
+                radius: 24,
+                backgroundColor: TropicalColors.coral.withValues(alpha: 0.15),
+                child: const Icon(
+                  Icons.restaurant_rounded,
+                  color: TropicalColors.coral,
+                  size: 24,
+                ),
               ),
               title: Text(
                 entry.key,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: TropicalColors.darkText,
+                ),
               ),
-              subtitle: Text('${entry.value} orders'),
+              subtitle: Text(
+                '${entry.value} orders',
+                style: const TextStyle(
+                  color: TropicalColors.mediumText,
+                  fontSize: 14,
+                ),
+              ),
               trailing: CurrencyDisplay(
                 amount: revenue,
-                textStyle: const TextStyle(fontSize: 14),
-                iconSize: 12,
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: TropicalColors.darkText,
+                ),
+                iconSize: 13,
               ),
             ),
           );
@@ -568,69 +816,104 @@ class _GroupInsightsScreenState extends State<GroupInsightsScreen> {
     final days = _timeRange == 'all' ? 30 : int.parse(_timeRange);
     final ordersPerDay = totalOrders / days;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Text(
-                  'Order Frequency',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    Text(
-                      ordersPerDay.toStringAsFixed(1),
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Orders/Day',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: Colors.grey[300],
-                ),
-                Column(
-                  children: [
-                    Text(
-                      '${(ordersPerDay * 7).toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Orders/Week',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.06),
+          width: 1,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: TropicalColors.orange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.calendar_today_rounded,
+                  color: TropicalColors.orange,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Order Frequency',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: TropicalColors.darkText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Column(
+                children: [
+                  Text(
+                    ordersPerDay.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.orange,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Orders/Day',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: TropicalColors.mediumText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                width: 1.5,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              Column(
+                children: [
+                  Text(
+                    (ordersPerDay * 7).toStringAsFixed(0),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: TropicalColors.coral,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Orders/Week',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: TropicalColors.mediumText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
